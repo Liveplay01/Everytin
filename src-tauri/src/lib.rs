@@ -1,4 +1,5 @@
 mod automation;
+mod clipboard_monitor;
 mod commands;
 mod db;
 mod error;
@@ -74,6 +75,28 @@ pub fn run() {
             commands::automation::acknowledge_alert,
             // battery
             commands::battery::get_battery_info,
+            // command bar
+            commands::command_bar::launch_app,
+            commands::command_bar::get_installed_apps,
+            // focus mode
+            commands::focus::start_focus_session,
+            commands::focus::stop_focus_session,
+            commands::focus::get_focus_stats,
+            // clipboard
+            commands::clipboard::get_clipboard_history,
+            commands::clipboard::clear_clipboard_history,
+            commands::clipboard::pin_clipboard_entry,
+            // smart modes
+            commands::smart_modes::get_current_mode,
+            // session restore
+            commands::session::save_session,
+            commands::session::list_sessions,
+            commands::session::restore_session,
+            commands::session::delete_session,
+            // plugins
+            commands::plugins::list_plugins,
+            commands::plugins::set_plugin_enabled,
+            commands::plugins::uninstall_plugin,
             // ai
             commands::ai::get_system_context,
             commands::ai::send_message,
@@ -114,6 +137,17 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 automation::automation_loop(handle_auto).await;
             });
+
+            // Clipboard monitor — opens a dedicated WAL-mode connection to the same DB file
+            {
+                use std::sync::Arc;
+                let db_path = db::data_dir().join("everytin.db");
+                if let Ok(conn) = rusqlite::Connection::open(&db_path) {
+                    conn.execute_batch("PRAGMA journal_mode=WAL;").ok();
+                    let db_arc = Arc::new(std::sync::Mutex::new(conn));
+                    clipboard_monitor::start(db_arc);
+                }
+            }
 
             Ok(())
         })

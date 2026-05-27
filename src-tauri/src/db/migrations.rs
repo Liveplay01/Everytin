@@ -67,7 +67,39 @@ pub const MIGRATIONS: &[&str] = &[
         updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
     );
     "#,
-    // v2 – seed default automation rules
+    // v2 – focus sessions + clipboard history tables
+    r#"
+    CREATE TABLE IF NOT EXISTS focus_sessions (
+        id               TEXT PRIMARY KEY,
+        started_at       TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at         TEXT,
+        duration_planned INTEGER NOT NULL DEFAULT 25,
+        duration_actual  INTEGER,
+        completed        INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_focus_sessions_date ON focus_sessions (started_at DESC);
+
+    CREATE TABLE IF NOT EXISTS clipboard_history (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        type       TEXT NOT NULL,
+        content    TEXT NOT NULL,
+        hash       TEXT NOT NULL,
+        pinned     INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_clipboard_hash ON clipboard_history (hash);
+    CREATE INDEX IF NOT EXISTS idx_clipboard_created ON clipboard_history (created_at DESC);
+    "#,
+    // v3 – sessions table
+    r#"
+    CREATE TABLE IF NOT EXISTS sessions (
+        id         TEXT PRIMARY KEY,
+        label      TEXT NOT NULL,
+        apps       TEXT NOT NULL DEFAULT '[]',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    "#,
+    // v4 – seed default automation rules
     r#"
     INSERT OR IGNORE INTO automation_rules (id, name, enabled, trigger_type, trigger_config, action_type, action_config)
     VALUES

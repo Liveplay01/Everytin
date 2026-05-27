@@ -30,7 +30,22 @@
       "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\public\" -Force)",
       "PowerShell(Copy-Item \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\\\\icons\\\\32x32.png\" \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\public\\\\logo.png\")",
       "PowerShell(Copy-Item \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\\\\icons\\\\128x128.png\" \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\public\\\\logo128.png\")",
-      "PowerShell($env:PATH = $env:PATH + \";$env:USERPROFILE\\\\.cargo\\\\bin\"; Set-Location \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\"; cargo check 2>&1)"
+      "PowerShell($env:PATH = $env:PATH + \";$env:USERPROFILE\\\\.cargo\\\\bin\"; Set-Location \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\"; cargo check 2>&1)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Read(//tmp/ECC/**)",
+      "Read(//c/tmp/ECC/**)",
+      "Bash(node /tmp/ECC/scripts/install-apply.js --help)",
+      "Bash(node /tmp/ECC/scripts/install-apply.js --profile full --dry-run --target claude)",
+      "Bash(node scripts/install-apply.js --profile full --dry-run --target claude)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); Object.entries\\(d\\).forEach\\(\\([k,v]\\)=>console.log\\(k+': '+v.description\\)\\)\")",
+      "Bash(node -e \"const d=require\\('/tmp/ECC/manifests/install-profiles.json'\\); Object.entries\\(d\\).forEach\\(\\([k,v]\\)=>console.log\\(k+': '+v.description\\)\\)\")",
+      "Bash(node -e \"const d=require\\('C:/Users/leona/AppData/Local/Temp/ECC/manifests/install-profiles.json'\\); Object.entries\\(d\\).forEach\\(\\([k,v]\\)=>console.log\\(k+': '+v.description\\)\\)\")",
+      "Bash(node -e \"const d=require\\('C:/Users/leona/AppData/Local/Temp/ECC/manifests/install-profiles.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(d\\), null, 2\\)\\)\")",
+      "Bash(node -e \"const d=require\\('C:/Users/leona/AppData/Local/Temp/ECC/manifests/install-profiles.json'\\); const p=d.profiles; Object.entries\\(p\\).forEach\\(\\([k,v]\\)=>console.log\\(k+': '+\\(v.description||''\\)\\)\\)\")",
+      "Read(//c/Users/leona/AppData/Local/Temp/ECC//**)",
+      "Bash(npx tsc *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\leona\\.claude\\memory"

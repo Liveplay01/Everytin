@@ -1,8 +1,14 @@
 pub mod ai;
 pub mod automation;
 pub mod battery;
+pub mod clipboard;
 pub mod cleanup;
+pub mod command_bar;
 pub mod drivers;
+pub mod focus;
+pub mod plugins;
+pub mod session;
+pub mod smart_modes;
 pub mod installer;
 pub mod performance;
 pub mod security;

@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { onNavigate, getSettings } from '@/lib/tauri'
 import { AnimatePresence, motion } from 'framer-motion'
 import AppShell from '@/components/layout/AppShell'
+import CommandBar from '@/components/command-bar/CommandBar'
+import { useCommandBarStore } from '@/lib/store'
 import Setup from '@/pages/Setup'
 import Dashboard from '@/pages/Dashboard'
 import Performance from '@/pages/Performance'
@@ -17,6 +19,11 @@ import Services from '@/pages/Services'
 import Drivers from '@/pages/Drivers'
 import Automation from '@/pages/Automation'
 import Battery from '@/pages/Battery'
+import FocusMode from '@/pages/FocusMode'
+import ClipboardHistory from '@/pages/ClipboardHistory'
+import Widgets from '@/pages/Widgets'
+import SessionRestore from '@/pages/SessionRestore'
+import PluginMarketplace from '@/pages/PluginMarketplace'
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -35,12 +42,25 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
 function MainApp() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { toggle: toggleCommandBar } = useCommandBarStore()
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
     onNavigate((route) => navigate(route)).then((fn) => { unlisten = fn })
     return () => unlisten?.()
   }, [navigate])
+
+  // Global shortcut: Ctrl+K opens Command Bar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        toggleCommandBar()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [toggleCommandBar])
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -71,6 +91,7 @@ function MainApp() {
 
   return (
     <AppShell>
+      <CommandBar />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -85,6 +106,11 @@ function MainApp() {
           <Route path="/cleanup"     element={<PageWrapper><Cleanup /></PageWrapper>} />
           <Route path="/automation"  element={<PageWrapper><Automation /></PageWrapper>} />
           <Route path="/battery"     element={<PageWrapper><Battery /></PageWrapper>} />
+          <Route path="/focus"       element={<PageWrapper><FocusMode /></PageWrapper>} />
+          <Route path="/clipboard"   element={<PageWrapper><ClipboardHistory /></PageWrapper>} />
+          <Route path="/widgets"     element={<PageWrapper><Widgets /></PageWrapper>} />
+          <Route path="/sessions"    element={<PageWrapper><SessionRestore /></PageWrapper>} />
+          <Route path="/plugins"     element={<PageWrapper><PluginMarketplace /></PageWrapper>} />
           <Route path="/settings"    element={<PageWrapper><Settings /></PageWrapper>} />
         </Routes>
       </AnimatePresence>

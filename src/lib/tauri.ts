@@ -215,6 +215,116 @@ export const acknowledgeAlert = (id: string) =>
 export const getBatteryInfo = () =>
   invoke<BatteryInfo | null>('get_battery_info')
 
+// ── Plugin System ─────────────────────────────────────────────────────────────
+
+export interface Plugin {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  enabled: boolean
+  path: string
+}
+
+export const listPlugins = () =>
+  invoke<Plugin[]>('list_plugins')
+
+export const setPluginEnabled = (id: string, enabled: boolean) =>
+  invoke<void>('set_plugin_enabled', { id, enabled })
+
+export const uninstallPlugin = (id: string) =>
+  invoke<void>('uninstall_plugin', { id })
+
+// ── Session Restore ───────────────────────────────────────────────────────────
+
+export interface SessionApp {
+  name: string
+  exe_path: string
+  window_title: string
+}
+
+export interface SavedSession {
+  id: string
+  label: string
+  apps: SessionApp[]
+  created_at: string
+}
+
+export const saveSession = (label: string) =>
+  invoke<string>('save_session', { label })
+
+export const listSessions = () =>
+  invoke<SavedSession[]>('list_sessions')
+
+export const restoreSession = (id: string) =>
+  invoke<number>('restore_session', { id })
+
+export const deleteSession = (id: string) =>
+  invoke<void>('delete_session', { id })
+
+// ── Smart Modes ───────────────────────────────────────────────────────────────
+
+export interface DetectedMode {
+  mode: 'work' | 'gaming' | 'study' | 'night' | 'idle'
+  confidence: number
+  reason: string
+}
+
+export const getCurrentMode = () =>
+  invoke<DetectedMode>('get_current_mode')
+
+// ── Clipboard History ─────────────────────────────────────────────────────────
+
+export interface ClipboardEntry {
+  id: number
+  type: 'text' | 'image' | 'code' | 'url'
+  content: string
+  pinned: boolean
+  created_at: string
+}
+
+export const getClipboardHistory = (limit: number) =>
+  invoke<ClipboardEntry[]>('get_clipboard_history', { limit })
+
+export const clearClipboardHistory = () =>
+  invoke<void>('clear_clipboard_history')
+
+export const pinClipboardEntry = (id: number, pinned: boolean) =>
+  invoke<void>('pin_clipboard_entry', { id, pinned })
+
+// ── Focus Mode ────────────────────────────────────────────────────────────────
+
+export interface FocusStats {
+  today_sessions: number
+  today_minutes: number
+  week_sessions: number
+  week_minutes: number
+  longest_session_minutes: number
+}
+
+export const startFocusSession = (durationPlanned: number) =>
+  invoke<string>('start_focus_session', { durationPlanned })
+
+export const stopFocusSession = (id: string, completed: boolean) =>
+  invoke<void>('stop_focus_session', { id, completed })
+
+export const getFocusStats = () =>
+  invoke<FocusStats>('get_focus_stats')
+
+// ── Command Bar ───────────────────────────────────────────────────────────────
+
+export interface InstalledApp {
+  name: string
+  path: string
+}
+
+export const launchApp = (path: string) =>
+  invoke<void>('launch_app', { path })
+
+export const getInstalledApps = () =>
+  invoke<InstalledApp[]>('get_installed_apps')
+
 // ── Navigate event ────────────────────────────────────────────────────────────
 
 export const onNavigate = (handler: (route: string) => void) =>

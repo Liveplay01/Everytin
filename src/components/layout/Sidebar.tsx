@@ -12,15 +12,24 @@ import {
   Cpu,
   Zap,
   BatteryCharging,
+  Search,
+  Focus,
+  ClipboardList,
+  Grid3X3,
+  History,
+  Puzzle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { useCommandBarStore } from '@/lib/store'
+import ModeWidget from '@/components/modules/smart-modes/ModeWidget'
 
 const NAVIGATION_GROUPS = [
   {
     title: 'Übersicht',
     items: [
       { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard',       tooltip: 'Systemübersicht und Aktivitäten' },
+      { to: '/widgets',     icon: Grid3X3,          label: 'Widgets',         tooltip: 'Modulares persönliches Dashboard' },
       { to: '/assistant',   icon: Bot,              label: 'AI Assistant',    tooltip: 'Fragen stellen, Software installieren lassen' },
     ]
   },
@@ -30,6 +39,10 @@ const NAVIGATION_GROUPS = [
       { to: '/performance', icon: Activity,         label: 'Performance',     tooltip: 'CPU, RAM und Prozesse in Echtzeit' },
       { to: '/cleanup',     icon: Sparkles,         label: 'Cleanup & Boost', tooltip: 'Speicherplatz freigeben und RAM optimieren' },
       { to: '/automation',  icon: Zap,              label: 'Automation',      tooltip: 'Automatische Hintergrundaufgaben verwalten' },
+      { to: '/focus',       icon: Focus,            label: 'Focus Mode',      tooltip: 'Pomodoro-Timer, Ambient Sound, Fokusstatistiken' },
+      { to: '/clipboard',   icon: ClipboardList,    label: 'Zwischenablage',  tooltip: 'Verlauf der kopierten Inhalte' },
+      { to: '/sessions',    icon: History,          label: 'Sessions',        tooltip: 'Arbeitsumgebungen speichern und wiederherstellen' },
+      { to: '/plugins',     icon: Puzzle,           label: 'Plugins',         tooltip: 'Erweiterungen verwalten' },
       { to: '/battery',     icon: BatteryCharging,  label: 'Akku & Energie',  tooltip: 'Akkugesundheit und Energieverbrauch' },
     ]
   },
@@ -61,6 +74,8 @@ const itemVariants = {
 }
 
 export default function Sidebar() {
+  const { open: openCommandBar } = useCommandBarStore()
+
   return (
     <aside className="w-[230px] flex-shrink-0 flex flex-col h-full bg-surface/50 dark:bg-[#0F0D16]/50 backdrop-blur-xl border-r border-border/80">
       {/* Logo */}
@@ -76,6 +91,23 @@ export default function Sidebar() {
           everytin
         </span>
       </div>
+
+      {/* Command Bar Trigger */}
+      <button
+        onClick={openCommandBar}
+        className="mx-3 mt-3 mb-1 flex items-center gap-2.5 px-3 py-2 rounded-lg bg-slate-100/80 dark:bg-white/[0.04] border border-border/60 hover:border-accent/40 hover:bg-accent/5 dark:hover:bg-white/[0.07] transition-all duration-150 group text-left w-[calc(100%-24px)]"
+      >
+        <Search size={13} className="text-slate-400 group-hover:text-accent dark:group-hover:text-[#A5B4FC] transition-colors flex-shrink-0" />
+        <span className="text-[12px] text-slate-400 dark:text-slate-500 group-hover:text-accent dark:group-hover:text-[#A5B4FC] transition-colors flex-1">
+          Suchen…
+        </span>
+        <kbd className="text-[10px] font-mono px-1 py-0.5 rounded bg-white dark:bg-white/10 border border-border/60 text-slate-400 dark:text-slate-500 flex-shrink-0">
+          ⌃K
+        </kbd>
+      </button>
+
+      {/* Smart Mode indicator */}
+      <ModeWidget />
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">

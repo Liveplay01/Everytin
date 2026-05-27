@@ -18,3 +18,31 @@ export const useMetricsStore = create<MetricsStore>((set) => ({
       history: [...state.history.slice(-(MAX_HISTORY - 1)), snap],
     })),
 }))
+
+// ── Command Bar ───────────────────────────────────────────────────────────────
+
+interface CommandBarStore {
+  isOpen: boolean
+  query: string
+  selectedIndex: number
+  open: () => void
+  close: () => void
+  toggle: () => void
+  setQuery: (q: string) => void
+  setSelectedIndex: (i: number) => void
+}
+
+export const useCommandBarStore = create<CommandBarStore>((set) => ({
+  isOpen: false,
+  query: '',
+  selectedIndex: 0,
+  open: () => set({ isOpen: true, query: '', selectedIndex: 0 }),
+  close: () => set({ isOpen: false, query: '', selectedIndex: 0 }),
+  toggle: () => set((s) => ({
+    isOpen: !s.isOpen,
+    query: '',
+    selectedIndex: 0,
+  })),
+  setQuery: (query) => set({ query }),
+  setSelectedIndex: (selectedIndex) => set({ selectedIndex }),
+}))
