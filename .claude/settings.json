@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(git -C \"c:/Users/leona/OneDrive/Documents/GitHub/Everytin\" log --oneline -10)",
+      "Bash(winget --version)",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(npm --version)",
+      "Bash(cargo search *)",
+      "Bash(powershell.exe -Command \"rustc --version; cargo --version; Get-Command cargo -ErrorAction SilentlyContinue | Select-Object Source\")",
+      "Bash(powershell.exe -Command \"npm list -g --depth=0 2>&1 | Select-String 'tauri'\")",
+      "Bash(powershell.exe -Command \"node --version; npm --version; Get-Command node | Select-Object Source\")",
+      "Bash(powershell.exe -Command \"winget --version; Get-Command winget | Select-Object Source\")",
+      "Bash(powershell.exe -Command \"Test-Path 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe'; Test-Path 'C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2022\\\\BuildTools\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe'; Get-Command cl.exe -ErrorAction SilentlyContinue | Select-Object Source\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Program Files\\\\Microsoft Visual Studio' -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Test-Path 'C:\\\\Program Files\\\\WebView2'; Test-Path 'C:\\\\Program Files \\(x86\\)\\\\Microsoft\\\\EdgeWebView'; Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\Microsoft\\\\EdgeWebView\\\\Application' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(rustup show *)",
+      "Bash(where cl *)",
+      "Bash(where link *)",
+      "Bash(winget install *)",
+      "Bash(export PATH=\"$HOME/.cargo/bin:$PATH\")",
+      "Bash(rustup toolchain *)",
+      "Bash(rustup default *)",
+      "Bash(npm install *)",
+      "Bash(cargo check *)",
+      "Bash(node create-ico.mjs)",
+      "PowerShell($env:PATH = $env:PATH + \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cd \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\"; cargo check 2>&1)",
+      "PowerShell($env:PATH = $env:PATH + \";$env:USERPROFILE\\\\.cargo\\\\bin\"; Set-Location \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\"; Start-Process powershell -ArgumentList \"-NoExit\", \"-Command\", \"`$env:PATH = `$env:PATH + ';' + `$env:USERPROFILE + '\\\\.cargo\\\\bin'; npm run tauri:dev\" -WindowStyle Normal)",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\public\" -Force)",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\\\\icons\\\\32x32.png\" \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\public\\\\logo.png\")",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\\\\icons\\\\128x128.png\" \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\public\\\\logo128.png\")",
+      "PowerShell($env:PATH = $env:PATH + \";$env:USERPROFILE\\\\.cargo\\\\bin\"; Set-Location \"c:\\\\Users\\\\leona\\\\OneDrive\\\\Documents\\\\GitHub\\\\Everytin\\\\src-tauri\"; cargo check 2>&1)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\leona\\.claude\\memory"
+    ]
+  }
+}

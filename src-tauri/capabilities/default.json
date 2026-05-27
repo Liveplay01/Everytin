@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schemas.tauri.app/capabilities/2",
+  "identifier": "default",
+  "description": "Default everytin capability",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:default",
+    "shell:allow-open",
+    "shell:allow-spawn",
+    "shell:allow-execute",
+    "shell:allow-kill",
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "autostart:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    "process:default",
+    "process:allow-restart",
+    "process:allow-exit",
+    "window-state:default"
+  ]
+}
