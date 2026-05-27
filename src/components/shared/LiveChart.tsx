@@ -45,7 +45,7 @@ export default function LiveChart({
             if (!active || !payload?.length) return null
             return (
               <div className="bg-white border border-border rounded-lg px-2.5 py-1.5 shadow-card text-[12px] font-medium text-[#1A1A1A]">
-                {payload[0].value?.toFixed(1)}{unit}
+                {Number(payload[0].value).toFixed(1)}{unit}
               </div>
             )
           }}
