@@ -8,6 +8,8 @@ import {
   Shield,
   Sparkles,
   Settings,
+  Wrench,
+  Cpu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
@@ -19,6 +21,8 @@ const NAV_ITEMS = [
   { to: '/installer', icon: Download, label: 'Installer' },
   { to: '/performance', icon: Activity, label: 'Performance' },
   { to: '/security', icon: Shield, label: 'Security' },
+  { to: '/services', icon: Wrench, label: 'Services' },
+  { to: '/drivers', icon: Cpu, label: 'Treiber' },
   { to: '/automation', icon: Sparkles, label: 'Cleanup' },
 ] as const
 

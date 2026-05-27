@@ -49,6 +49,11 @@ pub fn run() {
             commands::performance::toggle_autostart,
             // security
             commands::security::get_security_status,
+            // services
+            commands::services::get_services,
+            commands::services::set_service_start_type,
+            // drivers
+            commands::drivers::get_drivers,
             // cleanup / boost
             commands::cleanup::scan_junk_files,
             commands::cleanup::clean_junk_files,

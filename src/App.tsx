@@ -6,7 +6,10 @@ import Installer from '@/pages/Installer'
 import Settings from '@/pages/Settings'
 import Assistant from '@/pages/Assistant'
 import Cleanup from '@/pages/Cleanup'
-import Placeholder from '@/pages/Placeholder'
+import Updates from '@/pages/Updates'
+import Security from '@/pages/Security'
+import Services from '@/pages/Services'
+import Drivers from '@/pages/Drivers'
 
 export default function App() {
   return (
@@ -15,11 +18,13 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/updates" element={<Placeholder name="Updates" description="Windows Update scanning and management – coming in Phase 2." />} />
+          <Route path="/updates" element={<Updates />} />
           <Route path="/assistant" element={<Assistant />} />
           <Route path="/installer" element={<Installer />} />
           <Route path="/performance" element={<Performance />} />
-          <Route path="/security" element={<Placeholder name="Security" description="Security scanning, Defender status, and CVE alerts – coming in Phase 3." />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/drivers" element={<Drivers />} />
           <Route path="/automation" element={<Cleanup />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

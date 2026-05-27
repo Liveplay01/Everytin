@@ -99,6 +99,32 @@ export const getTemperatures = () =>
 export const getAutostartEntries = () =>
   invoke<import('@/types/system').AutostartEntry[]>('get_autostart_entries')
 
+export const toggleAutostart = (entryId: string, enabled: boolean) =>
+  invoke<void>('toggle_autostart', { entryId, enabled })
+
+// ── Updates ──────────────────────────────────────────────────────────────────
+
+export const scanWindowsUpdates = () =>
+  invoke<import('@/types/updates').UpdateEntry[]>('scan_windows_updates')
+
+// ── Security ─────────────────────────────────────────────────────────────────
+
+export const getSecurityStatus = () =>
+  invoke<import('@/types/security').SecurityStatus>('get_security_status')
+
+// ── Services ─────────────────────────────────────────────────────────────────
+
+export const getServices = () =>
+  invoke<import('@/types/services').ServiceEntry[]>('get_services')
+
+export const setServiceStartType = (name: string, startType: string, previousStartType: string) =>
+  invoke<import('@/types/services').ServiceActionResult>('set_service_start_type', { name, startType, previousStartType })
+
+// ── Drivers ──────────────────────────────────────────────────────────────────
+
+export const getDrivers = () =>
+  invoke<import('@/types/drivers').DriverEntry[]>('get_drivers')
+
 // ── Events ───────────────────────────────────────────────────────────────────
 
 export const onSystemMetrics = (handler: (snap: SystemSnapshot) => void) =>

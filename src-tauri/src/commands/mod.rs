@@ -1,9 +1,11 @@
 pub mod ai;
 pub mod automation;
 pub mod cleanup;
+pub mod drivers;
 pub mod installer;
 pub mod performance;
 pub mod security;
+pub mod services;
 pub mod settings;
 pub mod system;
 pub mod updates;

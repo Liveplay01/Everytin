@@ -15,8 +15,89 @@ pub struct UpdateEntry {
 
 #[tauri::command]
 pub async fn scan_windows_updates() -> AppResult<Vec<UpdateEntry>> {
-    // Phase 2: implement WMI/PowerShell Windows Update scanning
-    Ok(vec![])
+    use tokio::process::Command;
+    use tokio::time::{timeout, Duration};
+    use serde_json::Value;
+
+    let script = r#"
+$ErrorActionPreference = 'Stop'
+try {
+    $Session = New-Object -ComObject Microsoft.Update.Session
+    $Searcher = $Session.CreateUpdateSearcher()
+    $Result = $Searcher.Search("IsInstalled=0 and Type='Software'")
+    $updates = $Result.Updates | ForEach-Object {
+        [PSCustomObject]@{
+            Title        = $_.Title
+            KB           = ($_.KBArticleIDs | Select-Object -First 1)
+            SizeBytes    = $_.MaxDownloadSize
+            RebootReq    = [bool]$_.RebootRequired
+            Severity     = if ($_.MsrcSeverity) { $_.MsrcSeverity } else { 'Normal' }
+        }
+    }
+    $updates | ConvertTo-Json -Depth 3 -Compress
+} catch {
+    '[]'
+}
+"#;
+
+    let output = timeout(
+        Duration::from_secs(30),
+        Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .output(),
+    )
+    .await
+    .map_err(|_| crate::error::AppError::Timeout)?
+    .map_err(|e| crate::error::AppError::Process(e.to_string()))?;
+
+    let raw = String::from_utf8_lossy(&output.stdout).into_owned();
+    let raw = raw.trim();
+
+    if raw.is_empty() || raw == "[]" {
+        return Ok(vec![]);
+    }
+
+    // PowerShell returns a bare object (not array) when there is exactly 1 result — normalise.
+    let value: Value = serde_json::from_str(raw)
+        .unwrap_or(Value::Array(vec![]));
+
+    let arr = match value {
+        Value::Array(a) => a,
+        Value::Object(_) => vec![value],
+        _ => vec![],
+    };
+
+    let entries = arr
+        .into_iter()
+        .filter_map(|v| {
+            let title = v.get("Title")?.as_str()?.to_string();
+            let kb = v.get("KB").and_then(|x| x.as_str()).map(|s| s.to_string());
+            let size_bytes = v.get("SizeBytes").and_then(|x| x.as_u64());
+            let reboot_required = v.get("RebootReq").and_then(|x| x.as_bool()).unwrap_or(false);
+            let severity_raw = v.get("Severity").and_then(|x| x.as_str()).unwrap_or("Normal");
+            let severity = match severity_raw.to_lowercase().as_str() {
+                "critical" => "critical",
+                "important" => "important",
+                "moderate" => "moderate",
+                _ => "normal",
+            }
+            .to_string();
+            let id = kb.clone().unwrap_or_else(|| {
+                title.chars().filter(|c| c.is_alphanumeric()).take(16).collect()
+            });
+            Some(UpdateEntry {
+                id,
+                title,
+                kb_number: kb,
+                update_type: "windows".to_string(),
+                severity,
+                size_bytes,
+                reboot_required,
+            })
+        })
+        .collect();
+
+    Ok(entries)
 }
 
 #[tauri::command]

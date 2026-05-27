@@ -70,7 +70,71 @@ pub async fn get_temperatures() -> AppResult<Vec<ThermalZone>> {
 
 #[tauri::command]
 pub async fn toggle_autostart(entry_id: String, enabled: bool) -> AppResult<()> {
-    // Phase 2: implement registry toggle
-    let _ = (entry_id, enabled);
-    Ok(())
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+        use winreg::RegKey;
+        use crate::error::AppError;
+
+        // entry_id format: "hkcu_run_{name}"
+        let name = entry_id
+            .strip_prefix("hkcu_run_")
+            .ok_or_else(|| AppError::NotFound(format!("Unknown entry id: {entry_id}")))?;
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let run_key = hkcu
+            .open_subkey_with_flags(
+                "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                KEY_READ | KEY_WRITE,
+            )
+            .map_err(|e| AppError::System(e.to_string()))?;
+
+        if enabled {
+            // Re-read existing disabled backup (stored under a separate key)
+            let disabled_key = hkcu
+                .open_subkey_with_flags(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Run_Disabled_Everytin",
+                    KEY_READ | KEY_WRITE,
+                )
+                .map_err(|e| AppError::NotFound(format!("No disabled backup found: {e}")))?;
+
+            let path: String = disabled_key
+                .get_value(name)
+                .map_err(|e| AppError::NotFound(format!("Backup value not found: {e}")))?;
+
+            run_key
+                .set_value(name, &path)
+                .map_err(|e| AppError::System(e.to_string()))?;
+
+            disabled_key
+                .delete_value(name)
+                .ok();
+        } else {
+            // Back up the path, then remove from Run
+            let path: String = run_key
+                .get_value(name)
+                .map_err(|e| AppError::NotFound(format!("Entry not found: {e}")))?;
+
+            let (disabled_key, _) = hkcu
+                .create_subkey(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Run_Disabled_Everytin",
+                )
+                .map_err(|e| AppError::System(e.to_string()))?;
+
+            disabled_key
+                .set_value(name, &path)
+                .map_err(|e| AppError::System(e.to_string()))?;
+
+            run_key
+                .delete_value(name)
+                .map_err(|e| AppError::System(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = (entry_id, enabled);
+        Ok(())
+    }
 }
