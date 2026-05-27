@@ -20,6 +20,11 @@
     "process:default",
     "process:allow-restart",
     "process:allow-exit",
-    "window-state:default"
+    "window-state:default",
+    "notification:default",
+    "notification:allow-send-notification",
+    "notification:allow-request-permission",
+    "notification:allow-check-permission",
+    "notification:allow-is-permission-granted"
   ]
 }

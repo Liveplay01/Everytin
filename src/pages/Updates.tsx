@@ -10,10 +10,10 @@ import type { UpdateEntry } from '@/types/updates'
 
 function severityBadge(s: string) {
   switch (s) {
-    case 'critical': return 'bg-red-100 text-red-700 border border-red-200'
-    case 'important': return 'bg-amber-100 text-amber-700 border border-amber-200'
-    case 'moderate': return 'bg-blue-100 text-blue-700 border border-blue-200'
-    default: return 'bg-surface text-[#6B7280] border border-border'
+    case 'critical': return 'bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20'
+    case 'important': return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+    case 'moderate': return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
+    default: return 'bg-slate-100 dark:bg-white/[0.04] text-slate-500 dark:text-slate-400 border border-border/60'
   }
 }
 
@@ -72,31 +72,31 @@ export default function Updates() {
   return (
     <div className="p-8 max-w-5xl">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-[24px] font-bold text-[#1A1A1A]">Updates</h1>
-        <p className="text-[14px] text-[#6B7280] mt-0.5">Windows-Updates und App-Aktualisierungen im Überblick</p>
+        <h1 className="text-[24px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">Updates</h1>
+        <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Windows-Updates und App-Aktualisierungen im Überblick</p>
       </motion.div>
 
       {/* Windows Updates */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="bg-white rounded-xl shadow-card border border-border overflow-hidden mb-6"
+        className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl shadow-card border border-border/70 dark:border-white/[0.04] overflow-hidden mb-6"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 dark:border-white/[0.04]">
           <div>
-            <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Windows-Updates</h2>
+            <h2 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Windows-Updates</h2>
             {!loadingWin && (
-              <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+              <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5 font-semibold">
                 {winUpdates.length === 0
                   ? 'Kein Update ausstehend'
                   : `${winUpdates.length} Update${winUpdates.length > 1 ? 's' : ''} verfügbar${criticalCount > 0 ? ` — ${criticalCount} kritisch` : ''}`}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {winUpdates.length > 0 && (
               <button
                 onClick={() => open('ms-settings:windowsupdate').catch(() => null)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white rounded-lg text-[12px] font-medium hover:bg-accent/90 transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-600 text-white rounded-xl text-[12px] font-bold transition-all duration-150 shadow-sm"
               >
                 <ExternalLink size={13} />
                 In Windows öffnen
@@ -105,7 +105,7 @@ export default function Updates() {
             <button
               onClick={() => refetchWin()}
               disabled={fetchingWin}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-surface-2 transition-colors disabled:opacity-40"
+              className="w-8.5 h-8.5 flex items-center justify-center rounded-xl text-slate-400 dark:text-slate-500 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-colors disabled:opacity-40"
               title="Neu laden"
             >
               <RefreshCw size={14} className={fetchingWin ? 'animate-spin' : ''} />
@@ -114,45 +114,45 @@ export default function Updates() {
         </div>
 
         {loadingWin ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9CA3AF]">
-            <RefreshCw size={18} className="animate-spin mx-auto mb-2" />
+          <div className="px-5 py-10 text-center text-[13px] text-slate-400 dark:text-slate-500">
+            <RefreshCw size={18} className="animate-spin mx-auto mb-2 text-accent" />
             Windows Update wird abgefragt… (kann bis zu 30 s dauern)
           </div>
         ) : winUpdates.length === 0 ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9CA3AF]">
+          <div className="px-5 py-10 text-center text-[13px] text-slate-400 dark:text-slate-500 font-medium">
             Alles aktuell — keine ausstehenden Updates.
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border/60 dark:divide-white/[0.04] max-h-[300px] overflow-y-auto">
             {winUpdates.map((u) => (
-              <div key={u.id} className="flex items-center gap-4 px-5 py-3 hover:bg-surface-2 transition-colors">
+              <div key={u.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-100/50 dark:hover:bg-white/[0.03] transition-colors">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded capitalize', severityBadge(u.severity))}>
+                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-md capitalize', severityBadge(u.severity))}>
                       {u.severity}
                     </span>
-                    <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{u.title}</p>
+                    <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate">{u.title}</p>
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5">
+                  <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 dark:text-slate-500 font-semibold">
                     {u.kb_number && (
-                      <span className="text-[11px] text-[#9CA3AF] font-mono">KB{u.kb_number}</span>
+                      <span className="font-mono bg-slate-100 dark:bg-white/[0.04] px-1.5 py-0.5 rounded">KB{u.kb_number}</span>
                     )}
                     {u.size_bytes != null && u.size_bytes > 0 && (
-                      <span className="text-[11px] text-[#9CA3AF]">{formatBytes(u.size_bytes)}</span>
+                      <span>{formatBytes(u.size_bytes)}</span>
                     )}
                     {u.reboot_required && (
-                      <span className="flex items-center gap-1 text-[11px] text-amber-600">
-                        <RotateCcw size={10} /> Neustart erforderlich
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <RotateCcw size={11} /> Neustart erforderlich
                       </span>
                     )}
                   </div>
                 </div>
               </div>
             ))}
-            <div className="px-5 py-3 bg-surface-2">
+            <div className="px-5 py-3.5 bg-slate-100/30 dark:bg-white/[0.01]">
               <button
                 onClick={() => open('ms-settings:windowsupdate').catch(() => null)}
-                className="flex items-center gap-1.5 text-[12px] text-accent font-medium hover:underline"
+                className="flex items-center gap-1.5 text-[12px] text-accent dark:text-[#A5B4FC] font-bold hover:underline"
               >
                 <ExternalLink size={12} /> Alle Updates in Windows-Einstellungen installieren
               </button>
@@ -164,13 +164,13 @@ export default function Updates() {
       {/* App Updates (winget) */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
+        className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl shadow-card border border-border/70 dark:border-white/[0.04] overflow-hidden"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 dark:border-white/[0.04]">
           <div>
-            <h2 className="text-[15px] font-semibold text-[#1A1A1A]">App-Updates</h2>
+            <h2 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">App-Updates</h2>
             {!loadingApps && (
-              <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+              <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5 font-semibold">
                 {appUpdates.length === 0
                   ? 'Alle Apps aktuell'
                   : `${appUpdates.length} App${appUpdates.length > 1 ? 's' : ''} können aktualisiert werden`}
@@ -180,7 +180,7 @@ export default function Updates() {
           <button
             onClick={() => refetchApps()}
             disabled={fetchingApps}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-surface-2 transition-colors disabled:opacity-40"
+            className="w-8.5 h-8.5 flex items-center justify-center rounded-xl text-slate-400 dark:text-slate-500 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-colors disabled:opacity-40"
             title="Neu laden"
           >
             <RefreshCw size={14} className={fetchingApps ? 'animate-spin' : ''} />
@@ -188,45 +188,47 @@ export default function Updates() {
         </div>
 
         {loadingApps ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9CA3AF]">
-            <RefreshCw size={18} className="animate-spin mx-auto mb-2" />
+          <div className="px-5 py-10 text-center text-[13px] text-slate-400 dark:text-slate-500">
+            <RefreshCw size={18} className="animate-spin mx-auto mb-2 text-accent" />
             App-Updates werden abgefragt…
           </div>
         ) : appUpdates.length === 0 ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9CA3AF]">
+          <div className="px-5 py-10 text-center text-[13px] text-slate-400 dark:text-slate-500 font-medium">
             Alle installierten Apps sind aktuell.
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border/60 dark:divide-white/[0.04] max-h-[300px] overflow-y-auto">
             {appUpdates.map((u) => (
-              <div key={u.id} className="flex items-center gap-4 px-5 py-3 hover:bg-surface-2 transition-colors group">
+              <div key={u.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-100/50 dark:hover:bg-white/[0.03] transition-colors group">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{u.title}</p>
-                  <p className="text-[11px] text-[#9CA3AF] font-mono">{u.id}</p>
+                  <p className="text-[13.5px] font-bold text-slate-800 dark:text-slate-100 truncate">{u.title}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono mt-0.5 font-medium">{u.id}</p>
                 </div>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => handleInstallApp(u.id)}
                   disabled={installing === u.id || installMutation.isPending}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors',
+                    'flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold transition-all',
                     installing === u.id
-                      ? 'bg-accent/20 text-accent cursor-wait'
-                      : 'bg-accent text-white hover:bg-accent/90',
+                      ? 'bg-accent/25 text-accent dark:bg-[#8B5CF6]/20 dark:text-[#A5B4FC] cursor-wait'
+                      : 'bg-accent text-white hover:bg-accent-600',
                     'disabled:opacity-50',
                   )}
                 >
                   {installing === u.id ? (
-                    <RefreshCw size={12} className="animate-spin" />
+                    <RefreshCw size={13} className="animate-spin" />
                   ) : (
-                    <Download size={12} />
+                    <Download size={13} />
                   )}
                   Update
-                </button>
+                </motion.button>
               </div>
             ))}
-            <div className="px-5 py-3 bg-surface-2">
-              <p className="text-[11px] text-[#9CA3AF] flex items-center gap-1.5">
-                <AlertTriangle size={11} />
+            <div className="px-5 py-3.5 bg-slate-100/30 dark:bg-white/[0.01]">
+              <p className="text-[11.5px] text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-2">
+                <AlertTriangle size={13} className="text-amber-500" />
                 Updates werden im Hintergrund über winget installiert. Das Fenster bleibt dabei offen.
               </p>
             </div>

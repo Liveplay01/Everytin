@@ -1,7 +1,10 @@
+mod automation;
 mod commands;
 mod db;
 mod error;
+mod notifications;
 mod state;
+mod tray;
 
 use state::AppState;
 use tauri::Manager;
@@ -15,6 +18,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
@@ -29,6 +33,7 @@ pub fn run() {
             commands::system::kill_process,
             commands::system::get_disk_info,
             commands::system::get_network_info,
+            commands::system::get_metric_history,
             // installer
             commands::installer::search_packages,
             commands::installer::get_installed_packages,
@@ -43,6 +48,9 @@ pub fn run() {
             commands::updates::scan_windows_updates,
             commands::updates::scan_winget_updates,
             commands::updates::install_winget_update,
+            commands::updates::scan_driver_updates,
+            commands::updates::install_driver_update,
+            commands::updates::register_shutdown_update_task,
             // performance
             commands::performance::get_autostart_entries,
             commands::performance::get_temperatures,
@@ -60,14 +68,51 @@ pub fn run() {
             commands::cleanup::boost_system,
             // automation
             commands::automation::get_rules,
+            commands::automation::toggle_rule,
+            commands::automation::run_rule_now,
+            commands::automation::get_alerts,
+            commands::automation::acknowledge_alert,
+            // battery
+            commands::battery::get_battery_info,
             // ai
             commands::ai::get_system_context,
             commands::ai::send_message,
         ])
         .setup(|app| {
+            // System tray
+            tray::setup_tray(app)?;
+
             let handle = app.handle().clone();
+
+            // Window close → minimize to tray (if setting enabled)
+            if let Some(win) = app.get_webview_window("main") {
+                let handle_wc = handle.clone();
+                win.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        let minimize = handle_wc
+                            .try_state::<AppState>()
+                            .and_then(|s| s.cached_settings.lock().ok().map(|c| c.minimize_to_tray))
+                            .unwrap_or(true);
+                        if minimize {
+                            api.prevent_close();
+                            if let Some(w) = handle_wc.get_webview_window("main") {
+                                w.hide().ok();
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Metrics loop (real-time system stats)
+            let handle_metrics = handle.clone();
             tauri::async_runtime::spawn(async move {
-                metrics_loop(handle).await;
+                metrics_loop(handle_metrics).await;
+            });
+
+            // Automation engine
+            let handle_auto = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                automation::automation_loop(handle_auto).await;
             });
 
             Ok(())
@@ -85,9 +130,8 @@ async fn metrics_loop(app: tauri::AppHandle) {
     loop {
         ticker.tick().await;
 
-        // Build snapshot synchronously — State is acquired and dropped before any await
         let snapshot = {
-            let state = app.state::<AppState>();
+            let Some(state) = app.try_state::<AppState>() else { break };
             state
                 .system
                 .lock()
@@ -99,9 +143,12 @@ async fn metrics_loop(app: tauri::AppHandle) {
 
         app.emit("system://metrics", &snapshot).ok();
 
+        // Update tray tooltip with live stats
+        tray::update_tray_tooltip(&app, snapshot.cpu_usage, snapshot.ram_used, snapshot.ram_total);
+
         tick_count += 1;
         if tick_count % 5 == 0 {
-            let state = app.state::<AppState>();
+            let Some(state) = app.try_state::<AppState>() else { break };
             let lock = state.db.lock();
             if let Ok(db) = lock {
                 let _ = db.execute(

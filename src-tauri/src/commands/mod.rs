@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod automation;
+pub mod battery;
 pub mod cleanup;
 pub mod drivers;
 pub mod installer;

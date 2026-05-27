@@ -67,6 +67,15 @@ pub const MIGRATIONS: &[&str] = &[
         updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
     );
     "#,
+    // v2 – seed default automation rules
+    r#"
+    INSERT OR IGNORE INTO automation_rules (id, name, enabled, trigger_type, trigger_config, action_type, action_config)
+    VALUES
+        ('daily_cleanup',      'Daily Cleanup',        1, 'schedule',   '{"interval_hours":24}',  'cleanup',      '{}'),
+        ('weekly_update_scan', 'Weekly Update Scan',   1, 'schedule',   '{"interval_hours":168}', 'update_scan',  '{}'),
+        ('startup_ram_boost',  'Startup RAM Boost',    1, 'on_startup',  '{}',                    'ram_boost',    '{}'),
+        ('driver_check',       'Weekly Driver Check',  1, 'schedule',   '{"interval_hours":168}', 'driver_scan',  '{}');
+    "#,
 ];
 
 pub fn run(conn: &rusqlite::Connection) -> rusqlite::Result<()> {

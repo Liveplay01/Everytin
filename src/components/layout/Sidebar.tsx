@@ -10,20 +10,39 @@ import {
   Settings,
   Wrench,
   Cpu,
+  Zap,
+  BatteryCharging,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
-const NAV_ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/updates', icon: RefreshCw, label: 'Updates' },
-  { to: '/assistant', icon: Bot, label: 'AI Assistant' },
-  { to: '/installer', icon: Download, label: 'Installer' },
-  { to: '/performance', icon: Activity, label: 'Performance' },
-  { to: '/security', icon: Shield, label: 'Security' },
-  { to: '/services', icon: Wrench, label: 'Services' },
-  { to: '/drivers', icon: Cpu, label: 'Treiber' },
-  { to: '/automation', icon: Sparkles, label: 'Cleanup' },
+const NAVIGATION_GROUPS = [
+  {
+    title: 'Übersicht',
+    items: [
+      { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/assistant',   icon: Bot,              label: 'AI Assistant' },
+    ]
+  },
+  {
+    title: 'Systempflege',
+    items: [
+      { to: '/performance', icon: Activity,         label: 'Performance' },
+      { to: '/cleanup',     icon: Sparkles,         label: 'Cleanup & Boost' },
+      { to: '/automation',  icon: Zap,              label: 'Automation' },
+      { to: '/battery',     icon: BatteryCharging,  label: 'Akku & Energie' },
+    ]
+  },
+  {
+    title: 'Verwaltung',
+    items: [
+      { to: '/updates',     icon: RefreshCw,        label: 'Updates' },
+      { to: '/installer',   icon: Download,         label: 'App Installer' },
+      { to: '/services',    icon: Wrench,           label: 'Dienste' },
+      { to: '/drivers',     icon: Cpu,              label: 'Treiber' },
+      { to: '/security',    icon: Shield,           label: 'Sicherheit' },
+    ]
+  }
 ] as const
 
 const containerVariants = {
@@ -31,7 +50,7 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.04,
+      staggerChildren: 0.03,
     },
   },
 }
@@ -43,77 +62,86 @@ const itemVariants = {
 
 export default function Sidebar() {
   return (
-    <aside className="w-[220px] flex-shrink-0 flex flex-col h-full bg-surface border-r border-border">
+    <aside className="w-[230px] flex-shrink-0 flex flex-col h-full bg-surface/50 dark:bg-[#0F0D16]/50 backdrop-blur-xl border-r border-border/80">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
+      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border/60">
         <motion.img
-          src="/logo.png"
+          src="/logo.jpg"
           alt="everytin"
-          animate={{ rotate: [0, 3, -3, 0] }}
-          transition={{ duration: 0.6, delay: 1, ease: "easeInOut" }}
-          className="w-7 h-7 rounded-lg"
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+          className="w-7 h-7 rounded-lg shadow-sm"
         />
-        <span className="text-[15px] font-semibold text-[#1A1A1A] tracking-tight">
+        <span className="text-[16px] font-bold bg-gradient-to-r from-accent to-[#8B5CF6] bg-clip-text text-transparent tracking-tight">
           everytin
         </span>
       </div>
 
       {/* Navigation */}
-      <motion.nav 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto"
-      >
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-          <motion.div key={to} variants={itemVariants}>
-            <NavLink
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-colors duration-150 group',
-                  isActive ? 'text-accent-700' : 'text-[#6B7280]'
-                )
-              }
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {NAVIGATION_GROUPS.map((group) => (
+          <div key={group.title} className="space-y-1">
+            <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2 select-none">
+              {group.title}
+            </h3>
+            <motion.nav
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-0.5"
             >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute inset-0 bg-accent-50 rounded-lg -z-10"
-                      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                  <motion.div
-                    animate={{ scale: isActive ? 1.1 : 1 }}
-                    whileHover={!isActive ? { x: 2 } : {}}
-                    className="flex items-center gap-3 w-full"
+              {group.items.map(({ to, icon: Icon, label }) => (
+                <motion.div key={to} variants={itemVariants}>
+                  <NavLink
+                    to={to}
+                    className={({ isActive }) =>
+                      cn(
+                        'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-150 group overflow-hidden',
+                        isActive ? 'text-accent dark:text-[#A5B4FC]' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      )
+                    }
                   >
-                    <Icon
-                      size={16}
-                      className={cn(
-                        'flex-shrink-0',
-                        isActive ? 'text-accent-600' : 'text-current group-hover:text-[#1A1A1A]',
-                      )}
-                    />
-                    {label}
-                  </motion.div>
-                </>
-              )}
-            </NavLink>
-          </motion.div>
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-indicator"
+                            className="absolute inset-0 bg-accent/8 dark:bg-[#8B5CF6]/15 border-l-2 border-accent dark:border-[#8B5CF6] rounded-lg -z-10"
+                            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                          />
+                        )}
+                        <motion.div
+                          animate={{ scale: isActive ? 1.03 : 1 }}
+                          whileHover={!isActive ? { x: 2 } : {}}
+                          className="flex items-center gap-3 w-full"
+                        >
+                          <Icon
+                            size={15}
+                            className={cn(
+                              'flex-shrink-0 transition-transform group-hover:scale-110',
+                              isActive ? 'text-accent dark:text-[#A5B4FC]' : 'text-slate-400 dark:text-slate-500 group-hover:text-accent dark:group-hover:text-[#A5B4FC]',
+                            )}
+                          />
+                          {label}
+                        </motion.div>
+                      </>
+                    )}
+                  </NavLink>
+                </motion.div>
+              ))}
+            </motion.nav>
+          </div>
         ))}
-      </motion.nav>
+      </div>
 
       {/* Settings at bottom */}
-      <div className="px-3 py-4 border-t border-border">
+      <div className="px-3 py-4 border-t border-border/60">
         <NavLink
           to="/settings"
           className={({ isActive }) =>
             cn(
-              'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-colors duration-150 group',
-              isActive ? 'text-accent-700' : 'text-[#6B7280]'
+              'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-150 group',
+              isActive ? 'text-accent dark:text-[#A5B4FC]' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             )
           }
         >
@@ -122,20 +150,20 @@ export default function Sidebar() {
               {isActive && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className="absolute inset-0 bg-accent-50 rounded-lg -z-10"
+                  className="absolute inset-0 bg-accent/8 dark:bg-[#8B5CF6]/15 border-l-2 border-accent dark:border-[#8B5CF6] rounded-lg -z-10"
                   transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                 />
               )}
               <motion.div
-                animate={{ scale: isActive ? 1.1 : 1 }}
+                animate={{ scale: isActive ? 1.03 : 1 }}
                 whileHover={!isActive ? { x: 2 } : {}}
                 className="flex items-center gap-3 w-full"
               >
                 <Settings
-                  size={16}
+                  size={15}
                   className={cn(
-                    'flex-shrink-0',
-                    isActive ? 'text-accent-600' : 'text-current group-hover:text-[#1A1A1A]',
+                    'flex-shrink-0 transition-transform group-hover:scale-110',
+                    isActive ? 'text-accent dark:text-[#A5B4FC]' : 'text-slate-400 dark:text-slate-500 group-hover:text-accent dark:group-hover:text-[#A5B4FC]',
                   )}
                 />
                 Settings

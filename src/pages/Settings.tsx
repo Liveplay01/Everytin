@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Save, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSettings, updateSettings } from '@/lib/tauri'
+import { getSettings, updateSettings, registerShutdownUpdateTask } from '@/lib/tauri'
 import type { AppSettings } from '@/types/settings'
 import { cn } from '@/lib/utils'
+import { toast } from '@/components/shared/Toast'
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
@@ -15,6 +16,16 @@ const DEFAULT_SETTINGS: AppSettings = {
   minimize_to_tray: true,
   update_check_interval_hours: 24,
   language: 'de',
+  auto_cleanup_enabled: true,
+  auto_cleanup_interval_days: 7,
+  auto_update_scan_enabled: true,
+  auto_update_scan_interval_hours: 24,
+  install_updates_on_shutdown: false,
+  notify_on_updates: true,
+  notify_on_cleanup: true,
+  notify_on_driver_issues: true,
+  driver_update_mode: 'notify_only',
+  startup_ram_boost: true,
 }
 
 export default function Settings() {
@@ -43,6 +54,17 @@ export default function Settings() {
   })
 
   const handleSave = () => mutation.mutate(local)
+
+  const handleShutdownToggle = async (enable: boolean) => {
+    update('install_updates_on_shutdown', enable)
+    try {
+      await registerShutdownUpdateTask(enable)
+      toast.success(enable ? 'Aufgabe registriert' : 'Aufgabe entfernt')
+    } catch {
+      toast.error('UAC-Anfrage abgebrochen oder fehlgeschlagen')
+      update('install_updates_on_shutdown', !enable)
+    }
+  }
 
   const update = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setLocal((prev) => ({ ...prev, [key]: value }))
@@ -212,6 +234,72 @@ export default function Settings() {
               value={local.minimize_to_tray}
               onChange={(v) => update('minimize_to_tray', v)}
             />
+          </div>
+        </motion.div>
+
+        {/* Automation */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
+        >
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Automatisierung</h2>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">Steuere, was everytin automatisch im Hintergrund tut</p>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <ToggleRow
+              label="Updates beim Herunterfahren installieren"
+              description="Winget-Updates werden automatisch beim Abmelden via Task Scheduler installiert (UAC erforderlich)"
+              value={local.install_updates_on_shutdown}
+              onChange={handleShutdownToggle}
+            />
+            <ToggleRow
+              label="Automatisches Cleanup"
+              description="Temporäre Dateien regelmäßig bereinigen"
+              value={local.auto_cleanup_enabled}
+              onChange={(v) => update('auto_cleanup_enabled', v)}
+            />
+            <ToggleRow
+              label="RAM-Boost beim Start"
+              description="Arbeitsspeicher beim Programmstart optimieren"
+              value={local.startup_ram_boost}
+              onChange={(v) => update('startup_ram_boost', v)}
+            />
+            <ToggleRow
+              label="Update-Suche"
+              description="Automatisch nach App-Updates suchen"
+              value={local.auto_update_scan_enabled}
+              onChange={(v) => update('auto_update_scan_enabled', v)}
+            />
+            <ToggleRow
+              label="Benachrichtigungen: Updates"
+              description="Melde, wenn neue Updates verfügbar sind"
+              value={local.notify_on_updates}
+              onChange={(v) => update('notify_on_updates', v)}
+            />
+            <ToggleRow
+              label="Benachrichtigungen: Cleanup"
+              description="Melde, wenn Cleanup abgeschlossen ist"
+              value={local.notify_on_cleanup}
+              onChange={(v) => update('notify_on_cleanup', v)}
+            />
+            <ToggleRow
+              label="Benachrichtigungen: Treiber"
+              description="Warnung bei veralteten oder unsignierten Treibern"
+              value={local.notify_on_driver_issues}
+              onChange={(v) => update('notify_on_driver_issues', v)}
+            />
+            <div>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-2">Treiber-Update-Modus</label>
+              <select
+                value={local.driver_update_mode}
+                onChange={(e) => update('driver_update_mode', e.target.value as 'notify_only' | 'auto_install_signed_only')}
+                className="w-full px-3 py-2.5 text-[13px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
+              >
+                <option value="notify_only">Nur benachrichtigen</option>
+                <option value="auto_install_signed_only">Signierte Updates automatisch installieren</option>
+              </select>
+            </div>
           </div>
         </motion.div>
 

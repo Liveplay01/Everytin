@@ -4,6 +4,8 @@ import type { SystemSnapshot, ProcessInfo, DiskInfo } from '@/types/system'
 import type { Package, InstallResult } from '@/types/installer'
 import type { AppSettings } from '@/types/settings'
 import type { AiMessage } from '@/types/ai'
+import type { Rule, Alert } from '@/types/automation'
+import type { BatteryInfo } from '@/types/battery'
 
 // ── System ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +127,35 @@ export const setServiceStartType = (name: string, startType: string, previousSta
 export const getDrivers = () =>
   invoke<import('@/types/drivers').DriverEntry[]>('get_drivers')
 
+export interface DriverUpdateEntry {
+  id: string
+  title: string
+  device_description: string
+  driver_version: string
+  severity: string
+  size_bytes: number | null
+  reboot_required: boolean
+}
+
+export const scanDriverUpdates = () =>
+  invoke<DriverUpdateEntry[]>('scan_driver_updates')
+
+export const installDriverUpdate = (updateId: string) =>
+  invoke<boolean>('install_driver_update', { updateId })
+
+export const registerShutdownUpdateTask = (enable: boolean) =>
+  invoke<void>('register_shutdown_update_task', { enable })
+
+// ── Metrics History ───────────────────────────────────────────────────────────
+
+export interface MetricPoint {
+  value: number
+  recorded_at: string
+}
+
+export const getMetricHistory = (metric: string, hours = 24) =>
+  invoke<MetricPoint[]>('get_metric_history', { metric, hours })
+
 // ── Events ───────────────────────────────────────────────────────────────────
 
 export const onSystemMetrics = (handler: (snap: SystemSnapshot) => void) =>
@@ -161,3 +192,30 @@ export const onAiError = (
     'ai://stream-error',
     (e) => handler(e.payload),
   )
+
+// ── Automation ────────────────────────────────────────────────────────────────
+
+export const getRules = () =>
+  invoke<Rule[]>('get_rules')
+
+export const toggleRule = (id: string, enabled: boolean) =>
+  invoke<void>('toggle_rule', { id, enabled })
+
+export const runRuleNow = (id: string) =>
+  invoke<void>('run_rule_now', { id })
+
+export const getAlerts = (limit = 20) =>
+  invoke<Alert[]>('get_alerts', { limit })
+
+export const acknowledgeAlert = (id: string) =>
+  invoke<void>('acknowledge_alert', { id })
+
+// ── Battery ───────────────────────────────────────────────────────────────────
+
+export const getBatteryInfo = () =>
+  invoke<BatteryInfo | null>('get_battery_info')
+
+// ── Navigate event ────────────────────────────────────────────────────────────
+
+export const onNavigate = (handler: (route: string) => void) =>
+  listen<string>('app://navigate', (e) => handler(e.payload))

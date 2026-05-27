@@ -52,7 +52,7 @@ export default function Performance() {
   })
 
   async function handleKill(proc: ProcessInfo) {
-    if (!confirm(`Kill "${proc.name}" (PID ${proc.pid})?`)) return
+    if (!confirm(`Prozess "${proc.name}" (PID ${proc.pid}) wirklich beenden?`)) return
     setKilling(proc.pid)
     try {
       await killProcess(proc.pid)
@@ -69,86 +69,86 @@ export default function Performance() {
   return (
     <div className="p-8 max-w-5xl">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-[24px] font-bold text-[#1A1A1A]">Performance</h1>
-        <p className="text-[14px] text-[#6B7280] mt-0.5">Live system metrics and process management</p>
+        <h1 className="text-[24px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">Performance</h1>
+        <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Echtzeit-Metriken und Prozess-Management</p>
       </motion.div>
 
       {/* Charts */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="bg-white rounded-xl p-5 shadow-card border border-border"
+          className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl p-5 shadow-card border border-border/70 dark:border-white/[0.04]"
         >
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#9CA3AF]">CPU Usage</p>
-            <span className="text-[22px] font-bold text-[#1A1A1A]">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">CPU-Auslastung</p>
+            <span className="text-[24px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
               {formatPercent(current?.cpu_usage ?? 0)}
             </span>
           </div>
-          <p className="text-[12px] text-[#9CA3AF] mb-3">{current?.cpu_model ?? ''}</p>
-          <LiveChart data={cpuHistory} color="#4F46E5" height={80} />
+          <p className="text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 mb-4">{current?.cpu_model ?? ''}</p>
+          <LiveChart data={cpuHistory} color="#4F46E5" height={90} />
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl p-5 shadow-card border border-border"
+          className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl p-5 shadow-card border border-border/70 dark:border-white/[0.04]"
         >
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#9CA3AF]">RAM Usage</p>
-            <span className="text-[22px] font-bold text-[#1A1A1A]">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Arbeitsspeicher</p>
+            <span className="text-[24px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
               {formatPercent(ramPct, 0)}
             </span>
           </div>
-          <p className="text-[12px] text-[#9CA3AF] mb-3">
-            {current ? `${formatBytes(current.ram_used)} / ${formatBytes(current.ram_total)}` : ''}
+          <p className="text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 mb-4">
+            {current ? `${formatBytes(current.ram_used)} belegt / ${formatBytes(current.ram_total)} gesamt` : ''}
           </p>
-          <LiveChart data={ramHistory} color="#10B981" height={80} />
+          <LiveChart data={ramHistory} color="#10B981" height={90} />
         </motion.div>
       </div>
 
       {/* Autostart */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-        className="bg-white rounded-xl shadow-card border border-border overflow-hidden mb-6"
+        className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl shadow-card border border-border/70 dark:border-white/[0.04] overflow-hidden mb-6"
       >
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Autostart-Programme</h2>
-          <p className="text-[12px] text-[#9CA3AF] mt-0.5">
-            Diese Programme starten automatisch mit Windows. Deaktiviere unnötige Einträge für schnelleres Hochfahren.
+        <div className="px-5 py-4 border-b border-border/60 dark:border-white/[0.04]">
+          <h2 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Autostart-Programme</h2>
+          <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Diese Programme starten automatisch beim Anmelden. Deaktiviere unnötige Einträge für schnelleres Hochfahren.
           </p>
         </div>
 
         {elevationEntry && (
-          <div className="mx-5 mt-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-[13px] text-amber-800">
+          <div className="mx-5 mt-4 flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-[13px] text-amber-800 dark:text-amber-400">
             <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 text-amber-500" />
             <div>
-              <p className="font-semibold">Administratorrechte erforderlich</p>
+              <p className="font-bold">Administratorrechte erforderlich</p>
               <p className="mt-0.5 opacity-80">Dieser Eintrag liegt in HKLM und kann nur mit Administratorrechten geändert werden.</p>
-              <button onClick={() => setElevationEntry(null)} className="mt-1.5 text-[12px] underline font-medium">Schließen</button>
+              <button onClick={() => setElevationEntry(null)} className="mt-1.5 text-[12.5px] underline font-bold">Schließen</button>
             </div>
           </div>
         )}
 
         {autostart.length === 0 ? (
-          <p className="px-5 py-6 text-[13px] text-[#9CA3AF]">Keine Autostart-Einträge gefunden.</p>
+          <p className="px-5 py-6 text-[13px] text-slate-400 dark:text-slate-500">Keine Autostart-Einträge gefunden.</p>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border/60 dark:divide-white/[0.04] max-h-[300px] overflow-y-auto">
             {autostart.map((entry) => (
-              <div key={entry.id} className="flex items-center gap-4 px-5 py-3 hover:bg-surface-2 transition-colors">
+              <div key={entry.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-100/50 dark:hover:bg-white/[0.03] transition-colors">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{entry.name}</p>
-                  <p className="text-[11px] text-[#9CA3AF] truncate max-w-[480px]" title={entry.path}>{entry.path}</p>
+                  <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate">{entry.name}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[480px] mt-0.5 font-medium" title={entry.path}>{entry.path}</p>
                 </div>
-                <span className="text-[11px] text-[#9CA3AF] bg-surface px-2 py-0.5 rounded flex-shrink-0">{entry.location}</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.04] px-2.5 py-1 rounded-md border border-border/60 dark:border-white/[0.04] flex-shrink-0">{entry.location}</span>
                 <button
                   onClick={() => toggleMutation.mutate({ entryId: entry.id, enabled: !entry.enabled })}
                   disabled={toggleMutation.isPending}
-                  className="flex-shrink-0 text-[#9CA3AF] hover:text-accent transition-colors disabled:opacity-50"
+                  className="flex-shrink-0 text-slate-400 hover:text-accent transition-colors disabled:opacity-50"
                   title={entry.enabled ? 'Deaktivieren' : 'Aktivieren'}
                 >
                   {entry.enabled
-                    ? <ToggleRight size={22} className="text-accent" />
-                    : <ToggleLeft size={22} />}
+                    ? <ToggleRight size={24} className="text-accent dark:text-[#818CF8]" />
+                    : <ToggleLeft size={24} />}
                 </button>
               </div>
             ))}
@@ -159,23 +159,23 @@ export default function Performance() {
       {/* Process Table */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-        className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
+        className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl shadow-card border border-border/70 dark:border-white/[0.04] overflow-hidden"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Prozesse</h2>
-          <div className="flex gap-1">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 dark:border-white/[0.04]">
+          <h2 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Prozesse</h2>
+          <div className="flex gap-1.5 bg-slate-100 dark:bg-white/[0.04] p-1 rounded-xl">
             {(['cpu', 'memory', 'name'] as SortKey[]).map((key) => (
               <button
                 key={key}
                 onClick={() => setSortBy(key)}
                 className={cn(
-                  'px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors',
+                  'px-3.5 py-1.5 rounded-lg text-[11.5px] font-bold transition-all',
                   sortBy === key
-                    ? 'bg-accent text-white'
-                    : 'text-[#6B7280] hover:bg-surface-2',
+                    ? 'bg-accent dark:bg-[#8B5CF6] text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200',
                 )}
               >
-                {key === 'cpu' ? 'CPU' : key === 'memory' ? 'Memory' : 'Name'}
+                {key === 'cpu' ? 'CPU' : key === 'memory' ? 'Arbeitsspeicher' : 'Name'}
               </button>
             ))}
           </div>
@@ -183,56 +183,56 @@ export default function Performance() {
 
         <div className="overflow-auto max-h-[400px]">
           <table className="w-full text-[13px]">
-            <thead className="sticky top-0 bg-surface">
+            <thead className="sticky top-0 bg-slate-100 dark:bg-[#151322] select-none shadow-sm z-10">
               <tr>
-                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
-                  <button className="flex items-center gap-1" onClick={() => setSortBy('name')}>
-                    Name <ArrowUpDown size={10} />
+                <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  <button className="flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" onClick={() => setSortBy('name')}>
+                    Name <ArrowUpDown size={11} />
                   </button>
                 </th>
-                <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">PID</th>
-                <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
-                  <button className="flex items-center gap-1 ml-auto" onClick={() => setSortBy('cpu')}>
-                    CPU <ArrowUpDown size={10} />
+                <th className="text-left px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">PID</th>
+                <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  <button className="flex items-center gap-1 ml-auto hover:text-slate-700 dark:hover:text-slate-200 transition-colors" onClick={() => setSortBy('cpu')}>
+                    CPU <ArrowUpDown size={11} />
                   </button>
                 </th>
-                <th className="text-right px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
-                  <button className="flex items-center gap-1 ml-auto" onClick={() => setSortBy('memory')}>
-                    Memory <ArrowUpDown size={10} />
+                <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  <button className="flex items-center gap-1 ml-auto hover:text-slate-700 dark:hover:text-slate-200 transition-colors" onClick={() => setSortBy('memory')}>
+                    RAM <ArrowUpDown size={11} />
                   </button>
                 </th>
-                <th className="w-10 px-3 py-2.5" />
+                <th className="w-12 px-3 py-3" />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/40 dark:divide-white/[0.02]">
               {processes.map((p, i) => (
                 <tr
                   key={`${p.pid}-${i}`}
-                  className="border-t border-border hover:bg-surface-2 transition-colors group"
+                  className="hover:bg-slate-100/50 dark:hover:bg-white/[0.03] transition-colors group"
                 >
-                  <td className="px-5 py-2.5 font-medium text-[#1A1A1A] truncate max-w-[200px]">
+                  <td className="px-5 py-3 font-bold text-slate-800 dark:text-slate-100 truncate max-w-[200px]">
                     {p.name}
                   </td>
-                  <td className="px-3 py-2.5 text-[#9CA3AF] font-mono">{p.pid}</td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td className="px-3 py-3 text-slate-400 dark:text-slate-500 font-mono text-[11.5px]">{p.pid}</td>
+                  <td className="px-3 py-3 text-right">
                     <span className={cn(
-                      'font-medium',
-                      p.cpu_usage > 20 ? 'text-danger' : p.cpu_usage > 5 ? 'text-warning' : 'text-[#6B7280]',
+                      'font-bold',
+                      p.cpu_usage > 20 ? 'text-danger' : p.cpu_usage > 5 ? 'text-warning' : 'text-slate-500 dark:text-slate-400',
                     )}>
                       {formatPercent(p.cpu_usage)}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-right text-[#6B7280]">
+                  <td className="px-3 py-3 text-right font-semibold text-slate-500 dark:text-slate-400">
                     {formatBytes(p.memory)}
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-3 py-3 text-center">
                     <button
                       onClick={() => handleKill(p)}
                       disabled={killing === p.pid}
-                      className="w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-100 text-red-500 transition-all disabled:opacity-50"
-                      title="Kill process"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-red-500 transition-all disabled:opacity-50"
+                      title="Prozess beenden"
                     >
-                      <X size={13} />
+                      <X size={14} />
                     </button>
                   </td>
                 </tr>

@@ -3,6 +3,12 @@ use serde::Serialize;
 use sysinfo::{Disks, Networks, Pid, System};
 
 #[derive(Serialize, Clone, Debug)]
+pub struct MetricPoint {
+    pub value: f64,
+    pub recorded_at: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct SystemSnapshot {
     pub hostname: String,
     pub os_version: String,
@@ -202,4 +208,27 @@ pub async fn get_network_info() -> AppResult<Vec<NetworkInfo>> {
         })
         .collect();
     Ok(result)
+}
+
+#[tauri::command]
+pub async fn get_metric_history(
+    state: tauri::State<'_, AppState>,
+    metric: String,
+    hours: Option<u32>,
+) -> AppResult<Vec<MetricPoint>> {
+    let hours = hours.unwrap_or(24);
+    let db = state.db.lock().map_err(|e| crate::error::AppError::System(format!("lock: {e}")))?;
+    let mut stmt = db.prepare(
+        "SELECT value, recorded_at FROM metric_history WHERE metric = ?1 AND recorded_at > datetime('now', ?2) ORDER BY recorded_at ASC",
+    )?;
+    let rows = stmt.query_map(
+        rusqlite::params![metric, format!("-{hours} hours")],
+        |row| {
+            Ok(MetricPoint {
+                value: row.get(0)?,
+                recorded_at: row.get(1)?,
+            })
+        },
+    )?;
+    Ok(rows.flatten().collect())
 }

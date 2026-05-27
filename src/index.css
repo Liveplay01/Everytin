@@ -3,17 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --color-background: #FFFFFF;
-  --color-surface: #F8F9FA;
-  --color-surface-2: #F1F3F5;
-  --color-border: #E9ECEF;
+  --color-background: #F9FAFC; /* Slate-tinted crisp white */
+  --color-surface: rgba(255, 255, 255, 0.7);
+  --color-surface-2: rgba(241, 245, 249, 0.85);
+  --color-border: rgba(226, 232, 240, 0.8);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
 }
 
 .dark {
-  --color-background: #0D0D0D;
-  --color-surface: #161616;
-  --color-surface-2: #1F1F1F;
-  --color-border: #2A2A2A;
+  --color-background: #08070B; /* Deep Space Obsidian */
+  --color-surface: rgba(15, 13, 22, 0.6);
+  --color-surface-2: rgba(28, 25, 41, 0.75);
+  --color-border: rgba(255, 255, 255, 0.05);
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #64748B;
 }
 
 * {
@@ -31,18 +37,13 @@ body,
 
 body {
   background-color: var(--color-background);
-  color: #1A1A1A;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI',
-    'Inter', system-ui, sans-serif;
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.dark body {
-  color: #E8E8E8;
-}
-
-/* Scrollbar styling */
+/* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -51,18 +52,47 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: rgba(148, 163, 184, 0.5);
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Selection */
+/* Text selection */
 ::selection {
-  background: #E0E7FF;
-  color: #3730A3;
+  background: rgba(99, 102, 241, 0.2);
+  color: #6366F1;
 }
+
+/* Custom drift animation for ambient background blobs */
+@keyframes blob-float {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.15);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob-float 18s infinite ease-in-out;
+}
+
+/* Glass panel utility */
+.glass-card {
+  background: var(--color-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+}
+

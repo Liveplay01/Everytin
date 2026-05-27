@@ -1,8 +1,14 @@
 use crate::{error::AppResult, state::AppState};
 use serde::{Deserialize, Serialize};
 
+fn default_true() -> bool { true }
+fn default_7() -> u32 { 7 }
+fn default_24() -> u32 { 24 }
+fn default_notify_only() -> String { "notify_only".to_string() }
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AppSettings {
+    // ── Existing fields ─────────────────────────────────────────────────────
     pub theme: String,
     pub ai_provider: String,
     pub gemini_api_key: String,
@@ -11,6 +17,30 @@ pub struct AppSettings {
     pub minimize_to_tray: bool,
     pub update_check_interval_hours: u32,
     pub language: String,
+
+    // ── New automation / notification fields ────────────────────────────────
+    // All use #[serde(default)] so existing DB JSON blobs remain compatible.
+    #[serde(default = "default_true")]
+    pub auto_cleanup_enabled: bool,
+    #[serde(default = "default_7")]
+    pub auto_cleanup_interval_days: u32,
+    #[serde(default = "default_true")]
+    pub auto_update_scan_enabled: bool,
+    #[serde(default = "default_24")]
+    pub auto_update_scan_interval_hours: u32,
+    #[serde(default)]
+    pub install_updates_on_shutdown: bool,
+    #[serde(default = "default_true")]
+    pub notify_on_updates: bool,
+    #[serde(default = "default_true")]
+    pub notify_on_cleanup: bool,
+    #[serde(default = "default_true")]
+    pub notify_on_driver_issues: bool,
+    /// "notify_only" | "auto_install_signed_only"
+    #[serde(default = "default_notify_only")]
+    pub driver_update_mode: String,
+    #[serde(default = "default_true")]
+    pub startup_ram_boost: bool,
 }
 
 impl Default for AppSettings {
@@ -24,6 +54,16 @@ impl Default for AppSettings {
             minimize_to_tray: true,
             update_check_interval_hours: 24,
             language: "de".to_string(),
+            auto_cleanup_enabled: true,
+            auto_cleanup_interval_days: 7,
+            auto_update_scan_enabled: true,
+            auto_update_scan_interval_hours: 24,
+            install_updates_on_shutdown: false,
+            notify_on_updates: true,
+            notify_on_cleanup: true,
+            notify_on_driver_issues: true,
+            driver_update_mode: "notify_only".to_string(),
+            startup_ram_boost: true,
         }
     }
 }
@@ -34,18 +74,12 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> AppResult<AppSet
         crate::error::AppError::Database(format!("lock error: {e}"))
     })?;
 
-    let mut stmt = db.prepare(
-        "SELECT key, value FROM settings WHERE key = 'app_settings'",
-    )?;
-
-    let row: Option<String> = stmt
-        .query_row([], |r| r.get(1))
+    let row: Option<String> = db
+        .query_row("SELECT value FROM settings WHERE key = 'app_settings'", [], |r| r.get(0))
         .ok();
 
     if let Some(json) = row {
-        let settings: AppSettings = serde_json::from_str(&json)
-            .unwrap_or_default();
-        Ok(settings)
+        Ok(serde_json::from_str(&json).unwrap_or_default())
     } else {
         Ok(AppSettings::default())
     }
@@ -56,15 +90,20 @@ pub async fn update_settings(
     state: tauri::State<'_, AppState>,
     settings: AppSettings,
 ) -> AppResult<()> {
-    let db = state.db.lock().map_err(|e| {
-        crate::error::AppError::Database(format!("lock error: {e}"))
-    })?;
-
     let json = serde_json::to_string(&settings)?;
-    db.execute(
-        "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('app_settings', ?1, datetime('now'))",
-        rusqlite::params![json],
-    )?;
+    {
+        let db = state.db.lock().map_err(|e| {
+            crate::error::AppError::Database(format!("lock error: {e}"))
+        })?;
+        db.execute(
+            "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('app_settings', ?1, datetime('now'))",
+            rusqlite::params![json],
+        )?;
+    }
+    // Update the in-memory cache
+    if let Ok(mut cache) = state.cached_settings.lock() {
+        *cache = settings;
+    }
     Ok(())
 }
 

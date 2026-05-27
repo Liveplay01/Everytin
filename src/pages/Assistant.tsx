@@ -135,7 +135,7 @@ export default function Assistant() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-white flex-shrink-0">
-        <img src="/logo.png" alt="everytin" className="w-8 h-8 rounded-lg" />
+        <img src="/logo.jpg" alt="everytin" className="w-8 h-8 rounded-lg" />
         <div>
           <h1 className="text-[15px] font-semibold text-[#1A1A1A]">AI Assistant</h1>
           <p className="text-[11px] text-[#9CA3AF]">
