@@ -30,7 +30,7 @@ pub fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
     TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
-        .menu_on_left_click(false)
+        .show_menu_on_left_click(false)
         .tooltip("everytin")
         .icon(app.default_window_icon().unwrap().clone())
         .on_menu_event(move |app, event| match event.id().as_ref() {

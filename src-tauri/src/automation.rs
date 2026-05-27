@@ -17,13 +17,13 @@ pub async fn automation_loop(app: tauri::AppHandle) {
         // Clone settings — never hold Mutex across await
         let settings = {
             let Some(state) = app.try_state::<AppState>() else { break };
-            match state.cached_settings.lock() {
+            let x = match state.cached_settings.lock() {
                 Ok(s) => s.clone(),
                 Err(_) => {
                     tick_count += 1;
                     continue;
                 }
-            }
+            }; x
         };
 
         let rules = load_rules(&app);
@@ -172,13 +172,12 @@ async fn run_ram_boost(app: &tauri::AppHandle) {
     // Acquire state, read RAM, then DROP before any await point
     let ram_before = {
         let Some(state) = app.try_state::<AppState>() else { return };
-        if let Ok(mut sys) = state.system.lock() {
+        let x = if let Ok(mut sys) = state.system.lock() {
             sys.refresh_memory();
             sys.used_memory()
         } else {
             0
-        }
-        // state and lock guard dropped here
+        }; x
     };
 
     // Trim working sets (Windows-only, no borrowed state held)
@@ -192,12 +191,12 @@ async fn run_ram_boost(app: &tauri::AppHandle) {
     // Read RAM after — acquire fresh state reference after awaits
     let ram_after = {
         let Some(state) = app.try_state::<AppState>() else { return };
-        if let Ok(mut sys) = state.system.lock() {
+        let x = if let Ok(mut sys) = state.system.lock() {
             sys.refresh_memory();
             sys.used_memory()
         } else {
             0
-        }
+        }; x
     };
 
     let mb = ram_before.saturating_sub(ram_after) / 1_000_000;
