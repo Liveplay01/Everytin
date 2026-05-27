@@ -20,27 +20,27 @@ const NAVIGATION_GROUPS = [
   {
     title: 'Übersicht',
     items: [
-      { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/assistant',   icon: Bot,              label: 'AI Assistant' },
+      { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard',       tooltip: 'Systemübersicht und Aktivitäten' },
+      { to: '/assistant',   icon: Bot,              label: 'AI Assistant',    tooltip: 'Fragen stellen, Software installieren lassen' },
     ]
   },
   {
     title: 'Systempflege',
     items: [
-      { to: '/performance', icon: Activity,         label: 'Performance' },
-      { to: '/cleanup',     icon: Sparkles,         label: 'Cleanup & Boost' },
-      { to: '/automation',  icon: Zap,              label: 'Automation' },
-      { to: '/battery',     icon: BatteryCharging,  label: 'Akku & Energie' },
+      { to: '/performance', icon: Activity,         label: 'Performance',     tooltip: 'CPU, RAM und Prozesse in Echtzeit' },
+      { to: '/cleanup',     icon: Sparkles,         label: 'Cleanup & Boost', tooltip: 'Speicherplatz freigeben und RAM optimieren' },
+      { to: '/automation',  icon: Zap,              label: 'Automation',      tooltip: 'Automatische Hintergrundaufgaben verwalten' },
+      { to: '/battery',     icon: BatteryCharging,  label: 'Akku & Energie',  tooltip: 'Akkugesundheit und Energieverbrauch' },
     ]
   },
   {
     title: 'Verwaltung',
     items: [
-      { to: '/updates',     icon: RefreshCw,        label: 'Updates' },
-      { to: '/installer',   icon: Download,         label: 'App Installer' },
-      { to: '/services',    icon: Wrench,           label: 'Dienste' },
-      { to: '/drivers',     icon: Cpu,              label: 'Treiber' },
-      { to: '/security',    icon: Shield,           label: 'Sicherheit' },
+      { to: '/updates',     icon: RefreshCw,        label: 'Updates',         tooltip: 'Windows- und App-Updates installieren' },
+      { to: '/installer',   icon: Download,         label: 'App Installer',   tooltip: 'Software suchen und installieren' },
+      { to: '/services',    icon: Wrench,           label: 'Dienste',         tooltip: 'Windows-Dienste aktivieren oder deaktivieren' },
+      { to: '/drivers',     icon: Cpu,              label: 'Treiber',         tooltip: 'Treiber prüfen und via Windows Update aktualisieren' },
+      { to: '/security',    icon: Shield,           label: 'Sicherheit',      tooltip: 'Sicherheitsstatus und Firewall-Übersicht' },
     ]
   }
 ] as const
@@ -90,10 +90,11 @@ export default function Sidebar() {
               animate="visible"
               className="space-y-0.5"
             >
-              {group.items.map(({ to, icon: Icon, label }) => (
+              {group.items.map(({ to, icon: Icon, label, tooltip }) => (
                 <motion.div key={to} variants={itemVariants}>
                   <NavLink
                     to={to}
+                    title={tooltip}
                     className={({ isActive }) =>
                       cn(
                         'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-150 group overflow-hidden',
@@ -138,6 +139,7 @@ export default function Sidebar() {
       <div className="px-3 py-4 border-t border-border/60">
         <NavLink
           to="/settings"
+          title="Einstellungen"
           className={({ isActive }) =>
             cn(
               'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-150 group',

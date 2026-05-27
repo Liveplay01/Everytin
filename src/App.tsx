@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { onNavigate, getSettings } from '@/lib/tauri'
 import { AnimatePresence, motion } from 'framer-motion'
 import AppShell from '@/components/layout/AppShell'
+import Setup from '@/pages/Setup'
 import Dashboard from '@/pages/Dashboard'
 import Performance from '@/pages/Performance'
 import Installer from '@/pages/Installer'
@@ -31,7 +32,7 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
   )
 }
 
-function AppRoutes() {
+function MainApp() {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -58,9 +59,9 @@ function AppRoutes() {
         root.classList.remove('dark')
       }
     }
-    
+
     applyTheme()
-    
+
     if (settings.theme === 'system') {
       const media = window.matchMedia('(prefers-color-scheme: dark)')
       media.addEventListener('change', applyTheme)
@@ -73,21 +74,32 @@ function AppRoutes() {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
-          <Route path="/updates" element={<PageWrapper><Updates /></PageWrapper>} />
-          <Route path="/assistant" element={<PageWrapper><Assistant /></PageWrapper>} />
-          <Route path="/installer" element={<PageWrapper><Installer /></PageWrapper>} />
+          <Route path="/dashboard"   element={<PageWrapper><Dashboard /></PageWrapper>} />
+          <Route path="/updates"     element={<PageWrapper><Updates /></PageWrapper>} />
+          <Route path="/assistant"   element={<PageWrapper><Assistant /></PageWrapper>} />
+          <Route path="/installer"   element={<PageWrapper><Installer /></PageWrapper>} />
           <Route path="/performance" element={<PageWrapper><Performance /></PageWrapper>} />
-          <Route path="/security" element={<PageWrapper><Security /></PageWrapper>} />
-          <Route path="/services" element={<PageWrapper><Services /></PageWrapper>} />
-          <Route path="/drivers" element={<PageWrapper><Drivers /></PageWrapper>} />
-          <Route path="/cleanup" element={<PageWrapper><Cleanup /></PageWrapper>} />
-          <Route path="/automation" element={<PageWrapper><Automation /></PageWrapper>} />
-          <Route path="/battery" element={<PageWrapper><Battery /></PageWrapper>} />
-          <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
+          <Route path="/security"    element={<PageWrapper><Security /></PageWrapper>} />
+          <Route path="/services"    element={<PageWrapper><Services /></PageWrapper>} />
+          <Route path="/drivers"     element={<PageWrapper><Drivers /></PageWrapper>} />
+          <Route path="/cleanup"     element={<PageWrapper><Cleanup /></PageWrapper>} />
+          <Route path="/automation"  element={<PageWrapper><Automation /></PageWrapper>} />
+          <Route path="/battery"     element={<PageWrapper><Battery /></PageWrapper>} />
+          <Route path="/settings"    element={<PageWrapper><Settings /></PageWrapper>} />
         </Routes>
       </AnimatePresence>
     </AppShell>
+  )
+}
+
+function AppRoutes() {
+  const setupDone = !!localStorage.getItem('everytin_setup_complete')
+
+  return (
+    <Routes>
+      <Route path="/setup" element={<Setup />} />
+      <Route path="/*" element={setupDone ? <MainApp /> : <Navigate to="/setup" replace />} />
+    </Routes>
   )
 }
 

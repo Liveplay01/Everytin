@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { invoke } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-shell'
 import {
   RefreshCw, AlertTriangle, Search, ShieldAlert, Clock,
   Download, CheckCircle, Loader2, ChevronDown, ChevronUp, RotateCcw,
@@ -301,16 +300,16 @@ export default function Drivers() {
                       )}
                     </td>
                     <td className="px-3 py-2.5">
-                      <button
-                        onClick={() =>
-                          open(
-                            `https://www.google.com/search?q=${encodeURIComponent(d.device_name + ' ' + d.manufacturer + ' driver update')}`,
-                          ).catch(() => null)
-                        }
-                        className="flex items-center gap-1 text-[11px] text-accent font-medium opacity-0 group-hover:opacity-100 hover:underline transition-opacity"
-                      >
-                        <Search size={11} /> Update
-                      </button>
+                      {(d.potentially_outdated || !d.is_signed) && (
+                        <button
+                          onClick={() => {
+                            document.getElementById('wu-section')?.scrollIntoView({ behavior: 'smooth' })
+                          }}
+                          className="flex items-center gap-1 text-[11px] text-accent font-medium opacity-0 group-hover:opacity-100 hover:underline transition-opacity whitespace-nowrap"
+                        >
+                          <Download size={11} /> Via Windows Update
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -322,6 +321,7 @@ export default function Drivers() {
 
       {/* Windows Update Driver Updates */}
       <motion.div
+        id="wu-section"
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
         className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
       >
@@ -381,12 +381,22 @@ export default function Drivers() {
                   <Loader2 size={18} className="animate-spin mx-auto mb-2" />
                   Windows Update wird abgefragt… (kann bis zu 30s dauern)
                 </div>
-              ) : driverUpdates.length === 0 ? (
-                <div className="px-6 pb-6 text-center text-[13px] text-[#9CA3AF]">
-                  {wuStale
-                    ? 'Klicke "Auf Updates prüfen" um Windows Update abzufragen.'
-                    : 'Alle Treiber sind aktuell.'}
+              ) : wuStale && driverUpdates.length === 0 ? (
+                <div className="px-6 py-10 text-center">
+                  <Download size={28} className="mx-auto mb-3 text-[#D1D5DB]" />
+                  <p className="text-[14px] font-semibold text-[#1A1A1A] mb-1">Treiber-Updates prüfen</p>
+                  <p className="text-[12px] text-[#9CA3AF] mb-4">Windows Update nach verfügbaren Treiber-Updates abfragen</p>
+                  <button
+                    onClick={() => refetchWu()}
+                    disabled={wuFetching}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold bg-accent text-white rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50"
+                  >
+                    {wuFetching ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                    Jetzt scannen
+                  </button>
                 </div>
+              ) : !wuStale && driverUpdates.length === 0 ? (
+                <div className="px-6 pb-6 text-center text-[13px] text-[#9CA3AF]">Alle Treiber sind aktuell.</div>
               ) : (
                 <div className="px-6 pb-2">
                   {driverUpdates.map((entry) => (

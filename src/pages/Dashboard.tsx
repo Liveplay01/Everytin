@@ -1,6 +1,6 @@
-import { motion, useSpring, useTransform } from 'framer-motion'
-import { useEffect } from 'react'
-import { Cpu, MemoryStick, HardDrive, Clock, Shield, RefreshCw, Download, Zap, CheckCircle, AlertTriangle, Info, XCircle, Sparkles } from 'lucide-react'
+import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { Cpu, MemoryStick, HardDrive, Clock, Shield, RefreshCw, Download, Zap, CheckCircle, AlertTriangle, Info, XCircle, Sparkles, X } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import MetricCard from '@/components/shared/MetricCard'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -133,6 +133,14 @@ function formatTime(str: string) {
 
 export default function Dashboard() {
   const { current, isLoading } = useSystemMetrics()
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem('everytin_onboarding_dismissed'),
+  )
+
+  function dismissOnboarding() {
+    localStorage.setItem('everytin_onboarding_dismissed', '1')
+    setShowOnboarding(false)
+  }
 
   const { data: alerts = [] } = useQuery({
     queryKey: ['alerts'],
@@ -166,6 +174,42 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 max-w-5xl">
+      {/* Onboarding Banner */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden mb-6"
+          >
+            <div className="flex items-start gap-3 bg-accent/5 border border-accent/20 rounded-xl px-5 py-4">
+              <img src="/logo.jpg" alt="everytin" className="w-8 h-8 rounded-lg flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-[#1A1A1A]">Willkommen bei everytin!</p>
+                <p className="text-[12px] text-[#6B7280] mt-0.5">
+                  Dein autonomer Windows-Assistent. Prüfe die{' '}
+                  <Link to="/drivers" className="text-accent hover:underline font-medium">Treiber-Seite</Link>{' '}
+                  für veraltete Treiber, nutze den{' '}
+                  <Link to="/assistant" className="text-accent hover:underline font-medium">KI-Assistenten</Link>{' '}
+                  für Fragen, oder lass{' '}
+                  <Link to="/automation" className="text-accent hover:underline font-medium">Cleanup & Updates</Link>{' '}
+                  automatisch im Hintergrund laufen.
+                </p>
+              </div>
+              <button
+                onClick={dismissOnboarding}
+                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F1F3F5] hover:text-[#6B7280] transition-colors"
+                title="Schließen"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>

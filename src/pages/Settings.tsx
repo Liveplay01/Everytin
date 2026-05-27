@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Save, Eye, EyeOff, ExternalLink } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink, Github, Lock, ChevronDown } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSettings, updateSettings, registerShutdownUpdateTask } from '@/lib/tauri'
+import { open } from '@tauri-apps/plugin-shell'
 import type { AppSettings } from '@/types/settings'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/shared/Toast'
@@ -84,8 +85,8 @@ export default function Settings() {
   return (
     <div className="p-8 max-w-2xl">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-[24px] font-bold text-[#1A1A1A]">Settings</h1>
-        <p className="text-[14px] text-[#6B7280] mt-0.5">Configure everytin to your preferences</p>
+        <h1 className="text-[24px] font-bold text-[#1A1A1A]">Einstellungen</h1>
+        <p className="text-[14px] text-[#6B7280] mt-0.5">Passe everytin nach deinen Wünschen an</p>
       </motion.div>
 
       <div className="space-y-5">
@@ -95,8 +96,8 @@ export default function Settings() {
           className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
         >
           <div className="px-6 py-4 border-b border-border">
-            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">AI Assistant</h2>
-            <p className="text-[12px] text-[#9CA3AF] mt-0.5">Configure the AI provider for the assistant</p>
+            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">KI-Assistent</h2>
+            <p className="text-[12px] text-[#9CA3AF] mt-0.5">Wähle deinen KI-Anbieter für den Assistenten</p>
           </div>
           <div className="px-6 py-5 space-y-5">
             {/* Provider Selection */}
@@ -188,24 +189,28 @@ export default function Settings() {
           className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
         >
           <div className="px-6 py-4 border-b border-border">
-            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Appearance</h2>
+            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Darstellung</h2>
           </div>
           <div className="px-6 py-5 space-y-4">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-2">Theme</label>
+              <label className="block text-[12px] font-semibold text-[#374151] mb-2">Design</label>
               <div className="flex gap-2">
-                {(['light', 'dark', 'system'] as const).map((t) => (
+                {([
+                  { value: 'light', label: 'Hell' },
+                  { value: 'dark', label: 'Dunkel' },
+                  { value: 'system', label: 'System' },
+                ] as const).map(({ value, label }) => (
                   <button
-                    key={t}
-                    onClick={() => update('theme', t)}
+                    key={value}
+                    onClick={() => update('theme', value)}
                     className={cn(
-                      'flex-1 py-2.5 rounded-lg border text-[13px] font-medium capitalize transition-all',
-                      local.theme === t
+                      'flex-1 py-2.5 rounded-lg border text-[13px] font-medium transition-all',
+                      local.theme === value
                         ? 'bg-accent text-white border-accent'
                         : 'border-border text-[#6B7280] hover:border-accent/50',
                     )}
                   >
-                    {t}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -223,14 +228,14 @@ export default function Settings() {
           </div>
           <div className="px-6 py-5 space-y-4">
             <ToggleRow
-              label="Start with Windows"
-              description="Launch everytin automatically when you sign in"
+              label="Mit Windows starten"
+              description="everytin automatisch beim Anmelden starten"
               value={local.autostart}
               onChange={(v) => update('autostart', v)}
             />
             <ToggleRow
-              label="Minimize to system tray"
-              description="Keep everytin running in the background when closed"
+              label="Im Tray minimieren"
+              description="everytin läuft im Hintergrund weiter, wenn das Fenster geschlossen wird"
               value={local.minimize_to_tray}
               onChange={(v) => update('minimize_to_tray', v)}
             />
@@ -303,6 +308,80 @@ export default function Settings() {
           </div>
         </motion.div>
 
+        {/* Über everytin */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          className="bg-white rounded-xl shadow-card border border-border overflow-hidden"
+        >
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Über everytin</h2>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            {/* Logo + Version */}
+            <div className="flex items-center gap-3">
+              <img src="/logo.jpg" alt="everytin" className="w-10 h-10 rounded-xl shadow-sm" />
+              <div>
+                <p className="text-[14px] font-semibold text-[#1A1A1A]">everytin</p>
+                <p className="text-[12px] text-[#9CA3AF]">Version 0.1.0 · MIT License</p>
+              </div>
+            </div>
+
+            {/* Privacy Statement */}
+            <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <Lock size={13} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+              <p className="text-[12px] text-emerald-800">
+                <strong>Datenschutz:</strong> everytin sendet keine Daten ins Internet.
+                Alle Informationen bleiben lokal auf deinem Gerät gespeichert.
+                API-Schlüssel werden ausschließlich für direkte Anfragen an die jeweiligen KI-Anbieter verwendet.
+              </p>
+            </div>
+
+            {/* Links */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => open('https://github.com/leodev/everytin').catch(() => null)}
+                className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-[#6B7280] border border-border rounded-lg hover:bg-surface-2 hover:text-[#1A1A1A] transition-colors"
+              >
+                <Github size={13} /> GitHub
+              </button>
+              <button
+                onClick={() => open('https://github.com/leodev/everytin/blob/main/LICENSE').catch(() => null)}
+                className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-[#6B7280] border border-border rounded-lg hover:bg-surface-2 hover:text-[#1A1A1A] transition-colors"
+              >
+                <ExternalLink size={13} /> Lizenz anzeigen
+              </button>
+            </div>
+
+            {/* Open Source Dependencies */}
+            <details className="group">
+              <summary className="flex items-center gap-1.5 text-[12px] font-semibold text-[#6B7280] cursor-pointer hover:text-[#1A1A1A] transition-colors list-none select-none">
+                <ChevronDown size={13} className="transition-transform group-open:rotate-180" />
+                Open-Source-Abhängigkeiten
+              </summary>
+              <ul className="mt-2 space-y-1 pl-5">
+                {[
+                  ['React 19', 'MIT'],
+                  ['Tauri v2', 'MIT / Apache-2.0'],
+                  ['Tailwind CSS', 'MIT'],
+                  ['Framer Motion', 'MIT'],
+                  ['TanStack Query', 'MIT'],
+                  ['Recharts', 'MIT'],
+                  ['Lucide React', 'ISC'],
+                  ['sysinfo (Rust)', 'MIT'],
+                  ['rusqlite (Rust)', 'MIT'],
+                  ['tokio (Rust)', 'MIT'],
+                  ['winapi (Rust)', 'MIT'],
+                ].map(([lib, lic]) => (
+                  <li key={lib} className="flex items-center justify-between text-[11px] text-[#9CA3AF]">
+                    <span>{lib}</span>
+                    <span className="text-[10px] font-semibold text-[#D1D5DB] bg-[#F1F3F5] px-1.5 py-0.5 rounded">{lic}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </div>
+        </motion.div>
+
         {/* Save button */}
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
@@ -320,7 +399,7 @@ export default function Settings() {
             )}
           >
             <Save size={15} />
-            {saved ? 'Saved!' : mutation.isPending ? 'Saving…' : 'Save Settings'}
+            {saved ? 'Gespeichert!' : mutation.isPending ? 'Speichere…' : 'Einstellungen speichern'}
           </button>
         </motion.div>
       </div>
