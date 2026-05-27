@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  ArrowRight, ArrowLeft, CheckCircle,
-  Activity, Sparkles, RefreshCw, Bot, Shield, Cpu, Zap, BatteryCharging, Download,
+  ArrowRight, ArrowLeft, CheckCircle, X,
+  Activity, Sparkles, RefreshCw, Bot, Shield, Cpu, Zap, Download,
 } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { getSettings, updateSettings } from '@/lib/tauri'
@@ -122,6 +122,11 @@ export default function Setup() {
 
   const t = T[lang]
 
+  function skip() {
+    localStorage.setItem('everytin_setup_complete', '1')
+    navigate('/dashboard', { replace: true })
+  }
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const settings = await getSettings()
@@ -144,6 +149,7 @@ export default function Setup() {
   }
 
   function finish() {
+    localStorage.setItem('everytin_setup_complete', '1')
     saveMutation.mutate()
   }
 
@@ -172,7 +178,7 @@ export default function Setup() {
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[780px] mx-4 bg-white/[0.05] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_32px_80px_rgba(0,0,0,0.6)] overflow-hidden"
       >
-        {/* Top bar: logo + step dots */}
+        {/* Top bar: logo + step dots + skip */}
         <div className="flex items-center justify-between px-8 pt-7 pb-0">
           <div className="flex items-center gap-2.5">
             <motion.img
@@ -186,18 +192,27 @@ export default function Setup() {
               everytin
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: STEPS }).map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  width: i === step ? 20 : 6,
-                  backgroundColor: i < step ? '#22c55e' : i === step ? '#6366f1' : 'rgba(255,255,255,0.2)',
-                }}
-                transition={{ duration: 0.3 }}
-                className="h-1.5 rounded-full"
-              />
-            ))}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: STEPS }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    width: i === step ? 20 : 6,
+                    backgroundColor: i < step ? '#22c55e' : i === step ? '#6366f1' : 'rgba(255,255,255,0.2)',
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className="h-1.5 rounded-full"
+                />
+              ))}
+            </div>
+            <button
+              onClick={skip}
+              title="Überspringen"
+              className="w-6 h-6 flex items-center justify-center rounded-md text-white/25 hover:text-white/60 hover:bg-white/10 transition-colors"
+            >
+              <X size={14} />
+            </button>
           </div>
         </div>
 
