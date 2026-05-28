@@ -35,6 +35,8 @@ pub fn run() {
             commands::system::get_disk_info,
             commands::system::get_network_info,
             commands::system::get_metric_history,
+            commands::system::boost_system_all,
+            commands::system::global_system_check,
             // installer
             commands::installer::search_packages,
             commands::installer::get_installed_packages,
@@ -300,5 +302,52 @@ async fn startup_scan(app: tauri::AppHandle) {
             }
         }
         app.emit("cache://windows-updates-ready", ()).ok();
+    }
+
+    // 4. Services scan
+    sleep(Duration::from_secs(2)).await;
+    if let Ok(services) = commands::services::get_services_core().await {
+        if let Ok(json) = serde_json::to_string(&services) {
+            if let Some(state) = app.try_state::<AppState>() {
+                if let Ok(db) = state.db.lock() {
+                    let _ = db.execute(
+                        "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('services', ?1, datetime('now'))",
+                        rusqlite::params![json],
+                    );
+                }
+            }
+        }
+        app.emit("cache://services-ready", ()).ok();
+    }
+
+    // 5. Drivers scan (slowest)
+    sleep(Duration::from_secs(3)).await;
+    if let Ok(drivers) = commands::drivers::get_drivers_core().await {
+        if let Ok(json) = serde_json::to_string(&drivers) {
+            if let Some(state) = app.try_state::<AppState>() {
+                if let Ok(db) = state.db.lock() {
+                    let _ = db.execute(
+                        "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('drivers', ?1, datetime('now'))",
+                        rusqlite::params![json],
+                    );
+                }
+            }
+        }
+        app.emit("cache://drivers-ready", ()).ok();
+    }
+
+    // 6. Battery (fast, no extra delay)
+    if let Ok(battery) = commands::battery::get_battery_core().await {
+        if let Ok(json) = serde_json::to_string(&battery) {
+            if let Some(state) = app.try_state::<AppState>() {
+                if let Ok(db) = state.db.lock() {
+                    let _ = db.execute(
+                        "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('battery', ?1, datetime('now'))",
+                        rusqlite::params![json],
+                    );
+                }
+            }
+        }
+        app.emit("cache://battery-ready", ()).ok();
     }
 }

@@ -1,18 +1,28 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, Plus, RotateCcw } from 'lucide-react'
+import { LayoutDashboard, Plus, RotateCcw, PictureInPicture2 } from 'lucide-react'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import WidgetWrapper from '@/components/widgets/WidgetWrapper'
 import ClockWidget from '@/components/widgets/ClockWidget'
 import SystemStatsWidget from '@/components/widgets/SystemStatsWidget'
 import QuickActionsWidget from '@/components/widgets/QuickActionsWidget'
 import WeatherWidget from '@/components/widgets/WeatherWidget'
+import FocusWidget from '@/components/widgets/FocusWidget'
+import ClipboardWidget from '@/components/widgets/ClipboardWidget'
+import SessionWidget from '@/components/widgets/SessionWidget'
+import LinksWidget from '@/components/widgets/LinksWidget'
+import AppLauncherWidget from '@/components/widgets/AppLauncherWidget'
 import { useWidgetLayout, type WidgetId } from '@/hooks/useWidgetLayout'
-import { cn } from '@/lib/utils'
 
 const WIDGET_META: Record<WidgetId, { title: string; emoji: string }> = {
-  'clock':         { title: 'Uhrzeit',       emoji: '🕐' },
-  'system-stats':  { title: 'System',        emoji: '📊' },
-  'quick-actions': { title: 'Schnellzugriff',emoji: '⚡' },
-  'weather':       { title: 'Wetter',        emoji: '🌤️' },
+  'clock':          { title: 'Uhrzeit',        emoji: '🕐' },
+  'system-stats':   { title: 'System',         emoji: '📊' },
+  'quick-actions':  { title: 'Schnellzugriff', emoji: '⚡' },
+  'weather':        { title: 'Wetter',         emoji: '🌤️' },
+  'focus':          { title: 'Fokus-Timer',    emoji: '🎯' },
+  'clipboard':      { title: 'Zwischenablage', emoji: '📋' },
+  'session':        { title: 'Session Restore',emoji: '💾' },
+  'links':          { title: 'Links',          emoji: '🔗' },
+  'app-launcher':   { title: 'App-Starter',    emoji: '🚀' },
 }
 
 function renderWidget(id: WidgetId) {
@@ -21,7 +31,30 @@ function renderWidget(id: WidgetId) {
     case 'system-stats':  return <SystemStatsWidget />
     case 'quick-actions': return <QuickActionsWidget />
     case 'weather':       return <WeatherWidget />
+    case 'focus':         return <FocusWidget />
+    case 'clipboard':     return <ClipboardWidget />
+    case 'session':       return <SessionWidget />
+    case 'links':         return <LinksWidget />
+    case 'app-launcher':  return <AppLauncherWidget />
   }
+}
+
+async function openWidgetWindow() {
+  const existing = await WebviewWindow.getByLabel('widgets-overlay')
+  if (existing) {
+    existing.show().catch(() => null)
+    existing.setFocus().catch(() => null)
+    return
+  }
+  new WebviewWindow('widgets-overlay', {
+    url: '/#/widgets',
+    title: 'Widgets — everytin',
+    width: 460,
+    height: 720,
+    decorations: true,
+    alwaysOnTop: true,
+    resizable: true,
+  })
 }
 
 const pageVariants = {
@@ -53,7 +86,8 @@ export default function Widgets() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Available widgets to add */}
           {availableToAdd.map((id) => (
             <button
               key={id}
@@ -64,6 +98,18 @@ export default function Widgets() {
               {WIDGET_META[id].emoji} {WIDGET_META[id].title}
             </button>
           ))}
+
+          {/* Separate window */}
+          <button
+            onClick={openWidgetWindow}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-border/60 bg-white/60 dark:bg-white/[0.03] text-slate-500 hover:text-accent hover:border-accent/40 transition-all"
+            title="Widgets als eigenes Fenster öffnen"
+          >
+            <PictureInPicture2 size={12} />
+            Fenster
+          </button>
+
+          {/* Reset */}
           <button
             onClick={resetLayout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-border/50 bg-white/60 dark:bg-white/[0.03] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all"

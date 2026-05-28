@@ -47,9 +47,26 @@ pub async fn send_message(
 ) -> AppResult<String> {
     use tauri::Emitter;
 
-    if api_key.trim().is_empty() {
-        return Err(AppError::System("No API key configured. Go to Settings to add your Gemini or Claude API key.".to_string()));
+    let is_ollama = provider == "ollama";
+
+    if !is_ollama && api_key.trim().is_empty() {
+        return Err(AppError::System("Kein API-Key konfiguriert. Gehe zu Einstellungen und füge einen Gemini- oder Claude-API-Key hinzu.".to_string()));
     }
+
+    // For Ollama: read URL + model from settings
+    let (ollama_url, ollama_model) = if is_ollama {
+        let settings = {
+            let db = state.db.lock().map_err(|e| AppError::System(e.to_string()))?;
+            let row: Option<String> = db
+                .query_row("SELECT value FROM settings WHERE key = 'app_settings'", [], |r| r.get(0))
+                .ok();
+            row.and_then(|j| serde_json::from_str::<super::settings::AppSettings>(&j).ok())
+                .unwrap_or_default()
+        };
+        (settings.ollama_url, settings.ollama_model)
+    } else {
+        (String::new(), String::new())
+    };
 
     let ctx = get_system_context(state).await?;
     let stream_id = uuid::Uuid::new_v4().to_string();
@@ -58,6 +75,7 @@ pub async fn send_message(
     tauri::async_runtime::spawn(async move {
         let result = match provider.as_str() {
             "claude" => call_claude_api(&app, &sid, &api_key, &ctx, &history, &message).await,
+            "ollama" => call_ollama_api(&app, &sid, &ollama_url, &ollama_model, &ctx, &history, &message).await,
             _ => call_gemini_api(&app, &sid, &api_key, &ctx, &history, &message).await,
         };
         if let Err(e) = result {
@@ -66,6 +84,69 @@ pub async fn send_message(
     });
 
     Ok(stream_id)
+}
+
+async fn call_ollama_api(
+    app: &tauri::AppHandle,
+    stream_id: &str,
+    ollama_url: &str,
+    ollama_model: &str,
+    ctx: &AiSystemContext,
+    history: &[AiMessage],
+    message: &str,
+) -> AppResult<()> {
+    use tauri::Emitter;
+
+    let system_prompt = build_system_prompt(ctx).await;
+    let client = reqwest::Client::new();
+
+    let mut messages: Vec<serde_json::Value> = vec![
+        serde_json::json!({"role": "system", "content": system_prompt}),
+    ];
+    for msg in history {
+        messages.push(serde_json::json!({"role": msg.role, "content": msg.content}));
+    }
+    messages.push(serde_json::json!({"role": "user", "content": message}));
+
+    let body = serde_json::json!({
+        "model": ollama_model,
+        "messages": messages,
+        "stream": true,
+    });
+
+    let url = format!("{}/api/chat", ollama_url.trim_end_matches('/'));
+
+    let mut response = client
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| AppError::System(format!("Ollama nicht erreichbar: {e}. Ist Ollama installiert und läuft?")))?;
+
+    let mut full_text = String::new();
+
+    while let Some(chunk) = response.chunk().await.map_err(|e| AppError::System(e.to_string()))? {
+        let text = String::from_utf8_lossy(&chunk);
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() { continue; }
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                if let Some(delta) = json["message"]["content"].as_str() {
+                    if !delta.is_empty() {
+                        full_text.push_str(delta);
+                        app.emit("ai://stream-chunk", serde_json::json!({
+                            "stream_id": stream_id,
+                            "delta": delta,
+                        })).ok();
+                    }
+                }
+                if json["done"].as_bool().unwrap_or(false) { break; }
+            }
+        }
+    }
+
+    app.emit("ai://stream-done", serde_json::json!({ "stream_id": stream_id, "full_text": full_text })).ok();
+    Ok(())
 }
 
 async fn build_system_prompt(ctx: &AiSystemContext) -> String {

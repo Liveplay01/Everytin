@@ -1,9 +1,10 @@
 use crate::error::AppResult;
-use serde::Serialize;
+use crate::state::AppState;
+use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BatteryInfo {
     pub charge_percent: u32,
     pub is_charging: bool,
@@ -17,8 +18,7 @@ pub struct BatteryInfo {
     pub health_percent: Option<u32>,
 }
 
-#[tauri::command]
-pub async fn get_battery_info() -> AppResult<Option<BatteryInfo>> {
+pub async fn get_battery_core() -> AppResult<Option<BatteryInfo>> {
     let script = r#"
 $b = Get-WmiObject Win32_Battery -ErrorAction SilentlyContinue
 if (-not $b) { Write-Output 'null'; exit }
@@ -76,4 +76,35 @@ if ($designCap -and $fullCap -and $designCap -gt 0) {
         full_charge_capacity_mwh: v["FullCapacityMwh"].as_u64(),
         health_percent: v["HealthPercent"].as_u64().map(|h| h as u32),
     }))
+}
+
+#[tauri::command]
+pub async fn get_battery_info(state: tauri::State<'_, AppState>) -> AppResult<Option<BatteryInfo>> {
+    // Cache-first: use result if fresher than 60 seconds
+    if let Ok(db) = state.db.lock() {
+        if let Ok(json) = db.query_row(
+            "SELECT data_json FROM scan_cache WHERE key = 'battery' \
+             AND (CAST(strftime('%s','now') AS INTEGER) \
+                  - CAST(strftime('%s', scanned_at) AS INTEGER)) < 60",
+            [],
+            |r| r.get::<_, String>(0),
+        ) {
+            if let Ok(cached) = serde_json::from_str::<Option<BatteryInfo>>(&json) {
+                return Ok(cached);
+            }
+        }
+    }
+
+    let result = get_battery_core().await?;
+
+    if let Ok(json) = serde_json::to_string(&result) {
+        if let Ok(db) = state.db.lock() {
+            db.execute(
+                "INSERT OR REPLACE INTO scan_cache (key, data_json) VALUES (?1, ?2)",
+                rusqlite::params!["battery", json],
+            ).ok();
+        }
+    }
+
+    Ok(result)
 }

@@ -1,6 +1,20 @@
 import { useState, useCallback } from 'react'
 
-export type WidgetId = 'clock' | 'system-stats' | 'quick-actions' | 'weather'
+export type WidgetId =
+  | 'clock'
+  | 'system-stats'
+  | 'quick-actions'
+  | 'weather'
+  | 'focus'
+  | 'clipboard'
+  | 'session'
+  | 'links'
+  | 'app-launcher'
+
+const ALL_WIDGET_IDS: WidgetId[] = [
+  'clock', 'system-stats', 'quick-actions', 'weather',
+  'focus', 'clipboard', 'session', 'links', 'app-launcher',
+]
 
 const DEFAULT_LAYOUT: WidgetId[] = ['clock', 'system-stats', 'quick-actions', 'weather']
 const STORAGE_KEY = 'everytin_widget_layout'
@@ -41,8 +55,7 @@ export function useWidgetLayout() {
     setLayout(DEFAULT_LAYOUT)
   }, [])
 
-  const availableToAdd = (['clock', 'system-stats', 'quick-actions', 'weather'] as WidgetId[])
-    .filter((id) => !layout.includes(id))
+  const availableToAdd = ALL_WIDGET_IDS.filter((id) => !layout.includes(id))
 
   return { layout, removeWidget, addWidget, resetLayout, availableToAdd }
 }

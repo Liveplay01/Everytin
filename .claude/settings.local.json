@@ -4,7 +4,8 @@
       "Bash(netstat -ano)",
       "Read(//c/Users/Einrichtung/Documents/GitHub/Everytin/**)",
       "Bash(xargs -I{} taskkill /PID {} /F)",
-      "Bash(powershell -NoProfile -Command 'Get-NetTCPConnection -LocalPort 1420 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Output \"Killed PID $_\" }')"
+      "Bash(powershell -NoProfile -Command 'Get-NetTCPConnection -LocalPort 1420 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Output \"Killed PID $_\" }')",
+      "Bash(npm run:*)"
     ]
   }
 }

@@ -204,7 +204,7 @@ async fn run_ram_boost(app: &tauri::AppHandle) {
 }
 
 #[cfg(windows)]
-fn trim_all_working_sets() {
+pub fn trim_all_working_sets() {
     use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
     use winapi::um::processthreadsapi::OpenProcess;
     use winapi::um::psapi::EmptyWorkingSet;
@@ -262,7 +262,7 @@ async fn run_update_scan(app: &tauri::AppHandle, settings: &AppSettings) {
 }
 
 async fn run_driver_scan(app: &tauri::AppHandle, settings: &AppSettings) {
-    match crate::commands::drivers::get_drivers().await {
+    match crate::commands::drivers::get_drivers_core().await {
         Ok(drivers) => {
             let unsigned = drivers.iter().filter(|d| !d.is_signed).count();
             let outdated = drivers.iter().filter(|d| d.potentially_outdated).count();

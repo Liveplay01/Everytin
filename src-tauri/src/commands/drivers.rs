@@ -1,9 +1,10 @@
 use crate::error::{AppError, AppResult};
+use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DriverEntry {
     pub device_name: String,
     pub driver_version: String,
@@ -61,8 +62,7 @@ fn days_since(year: u32, month: u32, day: u32) -> u32 {
     diff.max(0) as u32
 }
 
-#[tauri::command]
-pub async fn get_drivers() -> AppResult<Vec<DriverEntry>> {
+pub async fn get_drivers_core() -> AppResult<Vec<DriverEntry>> {
     let script = r#"
 Get-WmiObject Win32_PnPSignedDriver |
   Where-Object { $_.DeviceName -ne $null -and $_.DeviceName -ne '' } |
@@ -143,4 +143,35 @@ Get-WmiObject Win32_PnPSignedDriver |
     });
 
     Ok(entries)
+}
+
+#[tauri::command]
+pub async fn get_drivers(state: tauri::State<'_, AppState>) -> AppResult<Vec<DriverEntry>> {
+    // Cache-first: use result if fresher than 5 minutes
+    if let Ok(db) = state.db.lock() {
+        if let Ok(json) = db.query_row(
+            "SELECT data_json FROM scan_cache WHERE key = 'drivers' \
+             AND (CAST(strftime('%s','now') AS INTEGER) \
+                  - CAST(strftime('%s', scanned_at) AS INTEGER)) < 300",
+            [],
+            |r| r.get::<_, String>(0),
+        ) {
+            if let Ok(cached) = serde_json::from_str::<Vec<DriverEntry>>(&json) {
+                return Ok(cached);
+            }
+        }
+    }
+
+    let result = get_drivers_core().await?;
+
+    if let Ok(json) = serde_json::to_string(&result) {
+        if let Ok(db) = state.db.lock() {
+            db.execute(
+                "INSERT OR REPLACE INTO scan_cache (key, data_json) VALUES (?1, ?2)",
+                rusqlite::params!["drivers", json],
+            ).ok();
+        }
+    }
+
+    Ok(result)
 }

@@ -1,6 +1,6 @@
 export interface AppSettings {
   theme: 'light' | 'dark' | 'system'
-  ai_provider: 'gemini' | 'claude'
+  ai_provider: 'gemini' | 'claude' | 'ollama'
   gemini_api_key: string
   claude_api_key: string
   autostart: boolean
@@ -18,4 +18,7 @@ export interface AppSettings {
   notify_on_driver_issues: boolean
   driver_update_mode: 'notify_only' | 'auto_install_signed_only'
   startup_ram_boost: boolean
+  // Ollama
+  ollama_url: string
+  ollama_model: string
 }

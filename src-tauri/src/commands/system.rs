@@ -1,5 +1,5 @@
 use crate::{error::AppResult, state::AppState};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sysinfo::{Disks, Networks, Pid, System};
 
 #[derive(Serialize, Clone, Debug)]
@@ -210,6 +210,242 @@ pub async fn get_network_info() -> AppResult<Vec<NetworkInfo>> {
         })
         .collect();
     Ok(result)
+}
+
+// ── Boost + Check + Launch ─────────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct BoostResult {
+    pub freed_ram_mb: u64,
+    pub freed_disk_mb: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CheckItem {
+    pub severity: String,
+    pub category: String,
+    pub title: String,
+    pub action: Option<String>,
+}
+
+#[tauri::command]
+pub async fn boost_system_all(
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> AppResult<BoostResult> {
+    // RAM before
+    let ram_before = {
+        if let Ok(mut sys) = state.system.lock() {
+            sys.refresh_memory();
+            sys.used_memory()
+        } else {
+            0
+        }
+    };
+
+    // Trim all process working sets (Windows only)
+    #[cfg(windows)]
+    {
+        tokio::task::spawn_blocking(crate::automation::trim_all_working_sets).await.ok();
+    }
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+
+    // RAM after
+    let ram_after = {
+        if let Ok(mut sys) = state.system.lock() {
+            sys.refresh_memory();
+            sys.used_memory()
+        } else {
+            0
+        }
+    };
+    let freed_ram_mb = ram_before.saturating_sub(ram_after) / 1_000_000;
+
+    // Disk cleanup
+    let freed_disk_mb = match crate::commands::cleanup::clean_junk_files(
+        vec!["user_temp".to_string(), "thumb_cache".to_string()],
+    ).await {
+        Ok(r) => r.freed_bytes / 1_000_000,
+        Err(_) => 0,
+    };
+
+    crate::automation::write_alert(
+        &app,
+        "success",
+        "performance",
+        "System Boost",
+        &format!("RAM: {freed_ram_mb} MB freigegeben, Disk: {freed_disk_mb} MB geleert"),
+    );
+
+    Ok(BoostResult { freed_ram_mb, freed_disk_mb })
+}
+
+#[tauri::command]
+pub async fn global_system_check(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<CheckItem>> {
+    let mut items: Vec<CheckItem> = Vec::new();
+
+    let db_locked = state.db.lock().ok();
+
+    // Helper to read from scan_cache
+    let read_cache = |key: &str| -> Option<String> {
+        db_locked.as_ref()?.query_row(
+            "SELECT data_json FROM scan_cache WHERE key = ?1",
+            rusqlite::params![key],
+            |r| r.get::<_, String>(0),
+        ).ok()
+    };
+
+    // Security check
+    if let Some(json) = read_cache("security_status") {
+        if let Ok(sec) = serde_json::from_str::<serde_json::Value>(&json) {
+            if !sec["defender_enabled"].as_bool().unwrap_or(true) {
+                items.push(CheckItem {
+                    severity: "critical".into(),
+                    category: "Sicherheit".into(),
+                    title: "Windows Defender ist deaktiviert".into(),
+                    action: Some("windowsdefender:".into()),
+                });
+            }
+            if !sec["defender_realtime"].as_bool().unwrap_or(true) {
+                items.push(CheckItem {
+                    severity: "critical".into(),
+                    category: "Sicherheit".into(),
+                    title: "Echtzeitschutz ist deaktiviert".into(),
+                    action: Some("windowsdefender:".into()),
+                });
+            }
+            if !sec["uac_enabled"].as_bool().unwrap_or(true) {
+                items.push(CheckItem {
+                    severity: "warning".into(),
+                    category: "Sicherheit".into(),
+                    title: "Benutzerkontensteuerung (UAC) ist deaktiviert".into(),
+                    action: Some("ms-settings:privacy-general".into()),
+                });
+            }
+            let fw_ok = sec["firewall_domain"].as_bool().unwrap_or(true)
+                && sec["firewall_private"].as_bool().unwrap_or(true)
+                && sec["firewall_public"].as_bool().unwrap_or(true);
+            if !fw_ok {
+                items.push(CheckItem {
+                    severity: "warning".into(),
+                    category: "Sicherheit".into(),
+                    title: "Firewall ist auf einem oder mehreren Profilen deaktiviert".into(),
+                    action: Some("ms-settings:windowsdefender".into()),
+                });
+            }
+        }
+    } else {
+        items.push(CheckItem {
+            severity: "info".into(),
+            category: "Sicherheit".into(),
+            title: "Sicherheitsscan noch nicht verfügbar".into(),
+            action: Some("/security".into()),
+        });
+    }
+
+    // Driver check
+    if let Some(json) = read_cache("drivers") {
+        if let Ok(drivers) = serde_json::from_str::<Vec<serde_json::Value>>(&json) {
+            let unsigned = drivers.iter().filter(|d| !d["is_signed"].as_bool().unwrap_or(true)).count();
+            let outdated = drivers.iter().filter(|d| d["potentially_outdated"].as_bool().unwrap_or(false)).count();
+            if unsigned > 0 {
+                items.push(CheckItem {
+                    severity: "warning".into(),
+                    category: "Treiber".into(),
+                    title: format!("{unsigned} unsignierte Treiber gefunden"),
+                    action: Some("/drivers".into()),
+                });
+            }
+            if outdated > 0 {
+                items.push(CheckItem {
+                    severity: "info".into(),
+                    category: "Treiber".into(),
+                    title: format!("{outdated} möglicherweise veraltete Treiber"),
+                    action: Some("/drivers".into()),
+                });
+            }
+        }
+    }
+
+    // App updates
+    if let Some(json) = read_cache("winget_updates") {
+        if let Ok(updates) = serde_json::from_str::<Vec<serde_json::Value>>(&json) {
+            if !updates.is_empty() {
+                items.push(CheckItem {
+                    severity: "info".into(),
+                    category: "Updates".into(),
+                    title: format!("{} App-Updates verfügbar", updates.len()),
+                    action: Some("/updates".into()),
+                });
+            }
+        }
+    }
+
+    // Windows updates
+    if let Some(json) = read_cache("windows_updates") {
+        if let Ok(updates) = serde_json::from_str::<Vec<serde_json::Value>>(&json) {
+            let critical = updates.iter().filter(|u| u["severity"].as_str() == Some("critical")).count();
+            if critical > 0 {
+                items.push(CheckItem {
+                    severity: "critical".into(),
+                    category: "Updates".into(),
+                    title: format!("{critical} kritische Windows-Updates ausstehend"),
+                    action: Some("ms-settings:windowsupdate".into()),
+                });
+            } else if !updates.is_empty() {
+                items.push(CheckItem {
+                    severity: "info".into(),
+                    category: "Updates".into(),
+                    title: format!("{} Windows-Updates verfügbar", updates.len()),
+                    action: Some("ms-settings:windowsupdate".into()),
+                });
+            }
+        }
+    }
+
+    // RAM check (live)
+    {
+        if let Ok(mut sys) = state.system.lock() {
+            sys.refresh_memory();
+            let used = sys.used_memory();
+            let total = sys.total_memory();
+            if total > 0 {
+                let pct = (used as f64 / total as f64 * 100.0) as u64;
+                if pct > 85 {
+                    items.push(CheckItem {
+                        severity: "warning".into(),
+                        category: "Performance".into(),
+                        title: format!("Arbeitsspeicher zu {pct}% ausgelastet"),
+                        action: Some("/cleanup".into()),
+                    });
+                }
+            }
+        }
+    }
+
+    // All good if no issues
+    if items.is_empty() {
+        items.push(CheckItem {
+            severity: "ok".into(),
+            category: "System".into(),
+            title: "Alles in Ordnung — dein PC läuft optimal".into(),
+            action: None,
+        });
+    }
+
+    // Sort: critical first, then warning, info, ok
+    let sev_rank = |s: &str| match s {
+        "critical" => 0,
+        "warning" => 1,
+        "info" => 2,
+        _ => 3,
+    };
+    items.sort_by_key(|i| sev_rank(&i.severity));
+
+    Ok(items)
 }
 
 #[tauri::command]

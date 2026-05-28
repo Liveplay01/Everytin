@@ -97,10 +97,12 @@ export default function Assistant() {
     setInput('')
     setIsStreaming(true)
 
-    const apiKey = settings?.ai_provider === 'claude'
-      ? settings.claude_api_key
-      : settings?.gemini_api_key ?? ''
     const provider = settings?.ai_provider ?? 'gemini'
+    const apiKey = provider === 'claude'
+      ? (settings?.claude_api_key ?? '')
+      : provider === 'ollama'
+        ? ''
+        : (settings?.gemini_api_key ?? '')
 
     try {
       const streamId = await sendMessage(userMsg.content, history, apiKey, provider)
@@ -129,7 +131,8 @@ export default function Assistant() {
     }
   }
 
-  const noApiKey = !settings?.gemini_api_key && !settings?.claude_api_key
+  const isOllama = settings?.ai_provider === 'ollama'
+  const noApiKey = !isOllama && !settings?.gemini_api_key && !settings?.claude_api_key
 
   return (
     <div className="flex flex-col h-full">
@@ -139,7 +142,7 @@ export default function Assistant() {
         <div>
           <h1 className="text-[15px] font-semibold text-[#1A1A1A]">AI Assistant</h1>
           <p className="text-[11px] text-[#9CA3AF]">
-            {settings?.ai_provider === 'claude' ? 'Claude by Anthropic' : 'Gemini by Google'}
+            {settings?.ai_provider === 'claude' ? 'Claude by Anthropic' : settings?.ai_provider === 'ollama' ? `Ollama · ${settings.ollama_model ?? 'llama3.2'}` : 'Gemini by Google'}
           </p>
         </div>
       </div>
@@ -148,7 +151,14 @@ export default function Assistant() {
       {noApiKey && (
         <div className="mx-6 mt-4 flex items-start gap-2.5 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-[13px] text-amber-800">
           <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
-          <span>No API key configured. Go to <strong>Settings</strong> to add your Gemini or Claude API key.</span>
+          <span>Kein API-Key konfiguriert. Gehe zu <strong>Einstellungen</strong> und füge deinen Gemini- oder Claude-Key hinzu — oder wähle <strong>Ollama (kostenlos)</strong>.</span>
+        </div>
+      )}
+      {/* Ollama Setup Info */}
+      {isOllama && (
+        <div className="mx-6 mt-4 flex items-start gap-2.5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[13px] text-emerald-800">
+          <AlertTriangle size={15} className="flex-shrink-0 mt-0.5 text-emerald-600" />
+          <span>Ollama aktiv — stelle sicher dass Ollama läuft (<code className="font-mono">ollama serve</code>) und das Modell geladen ist (<code className="font-mono">ollama pull {settings?.ollama_model ?? 'llama3.2'}</code>).</span>
         </div>
       )}
 

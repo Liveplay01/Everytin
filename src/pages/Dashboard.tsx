@@ -1,16 +1,22 @@
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Cpu, MemoryStick, HardDrive, Clock, Shield, RefreshCw, Download, Zap, CheckCircle, AlertTriangle, Info, XCircle, Sparkles, X } from 'lucide-react'
+import { Cpu, MemoryStick, HardDrive, Clock, Shield, RefreshCw, Download, Zap, CheckCircle, AlertTriangle, Info, XCircle, Sparkles, X, ShieldCheck } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import MetricCard from '@/components/shared/MetricCard'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { useSystemMetrics } from '@/hooks/useSystemMetrics'
 import { formatBytes, formatUptime, formatPercent } from '@/lib/utils'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { getAlerts, getMetricHistory } from '@/lib/tauri'
+import { invoke } from '@tauri-apps/api/core'
+import { open } from '@tauri-apps/plugin-shell'
+import { toast } from '@/components/shared/Toast'
 import type { Alert } from '@/types/automation'
 import { cn } from '@/lib/utils'
+
+interface BoostResult { freed_ram_mb: number; freed_disk_mb: number }
+interface CheckItem { severity: string; category: string; title: string; action?: string }
 
 const container = {
   hidden: { opacity: 0 },
@@ -131,16 +137,44 @@ function formatTime(str: string) {
   }
 }
 
+const CHECK_SEVERITY_ICON: Record<string, React.ElementType> = {
+  critical: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+  ok: CheckCircle,
+}
+const CHECK_SEVERITY_COLOR: Record<string, string> = {
+  critical: 'text-red-500',
+  warning: 'text-amber-500',
+  info: 'text-blue-500',
+  ok: 'text-emerald-500',
+}
+
 export default function Dashboard() {
   const { current, isLoading } = useSystemMetrics()
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem('everytin_onboarding_dismissed'),
   )
+  const [checkResults, setCheckResults] = useState<CheckItem[] | null>(null)
 
   function dismissOnboarding() {
     localStorage.setItem('everytin_onboarding_dismissed', '1')
     setShowOnboarding(false)
   }
+
+  const boostMutation = useMutation({
+    mutationFn: () => invoke<BoostResult>('boost_system_all'),
+    onSuccess: (r) => {
+      toast.success(`System geboostet — ${r.freed_ram_mb} MB RAM + ${r.freed_disk_mb} MB Disk freigegeben`)
+    },
+    onError: () => toast.error('Boost fehlgeschlagen'),
+  })
+
+  const checkMutation = useMutation({
+    mutationFn: () => invoke<CheckItem[]>('global_system_check'),
+    onSuccess: (items) => setCheckResults(items),
+    onError: () => toast.error('System-Check fehlgeschlagen'),
+  })
 
   const { data: alerts = [] } = useQuery({
     queryKey: ['alerts'],
@@ -341,6 +375,90 @@ export default function Dashboard() {
             color="success"
           />
         </motion.div>
+      </motion.div>
+
+      {/* Boost + Check */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-6">
+        <div className="flex gap-4">
+          {/* Boost Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => boostMutation.mutate()}
+            disabled={boostMutation.isPending}
+            className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl bg-accent text-white font-bold text-[14px] shadow-[0_4px_20px_rgba(99,102,241,0.35)] hover:bg-accent/90 transition-all disabled:opacity-60"
+          >
+            {boostMutation.isPending
+              ? <RefreshCw size={18} className="animate-spin" />
+              : <Zap size={18} />}
+            {boostMutation.isPending ? 'Wird geboostet…' : 'System boosten'}
+          </motion.button>
+
+          {/* Check Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { setCheckResults(null); checkMutation.mutate() }}
+            disabled={checkMutation.isPending}
+            className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-border/70 dark:border-white/[0.08] text-slate-700 dark:text-slate-200 font-bold text-[14px] hover:bg-white/80 dark:hover:bg-white/[0.07] transition-all disabled:opacity-60 backdrop-blur-md"
+          >
+            {checkMutation.isPending
+              ? <RefreshCw size={18} className="animate-spin text-accent" />
+              : <ShieldCheck size={18} className="text-accent" />}
+            {checkMutation.isPending ? 'Wird geprüft…' : 'System prüfen'}
+          </motion.button>
+        </div>
+
+        {/* Check Results Panel */}
+        <AnimatePresence>
+          {checkResults && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden mt-4"
+            >
+              <div className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md rounded-2xl border border-border/70 dark:border-white/[0.04] shadow-card overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border/60 dark:border-white/[0.04]">
+                  <h3 className="text-[13px] font-bold text-slate-800 dark:text-slate-100">System-Check Ergebnis</h3>
+                  <button onClick={() => setCheckResults(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="divide-y divide-border/40 dark:divide-white/[0.04]">
+                  {checkResults.map((item, i) => {
+                    const Icon = CHECK_SEVERITY_ICON[item.severity] ?? Info
+                    const color = CHECK_SEVERITY_COLOR[item.severity] ?? 'text-blue-500'
+                    return (
+                      <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                        <Icon size={15} className={cn('flex-shrink-0', color)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12.5px] font-semibold text-slate-700 dark:text-slate-200">{item.title}</p>
+                          <p className="text-[10.5px] text-slate-400 dark:text-slate-500 font-medium">{item.category}</p>
+                        </div>
+                        {item.action && (
+                          <button
+                            onClick={() => {
+                              if (item.action!.startsWith('/')) {
+                                window.location.hash = item.action!
+                              } else {
+                                open(item.action!).catch(() => null)
+                              }
+                            }}
+                            className="text-[11px] font-bold text-accent dark:text-[#A5B4FC] hover:underline flex-shrink-0"
+                          >
+                            Öffnen
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Quick Actions */}

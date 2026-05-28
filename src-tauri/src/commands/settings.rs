@@ -5,6 +5,8 @@ fn default_true() -> bool { true }
 fn default_7() -> u32 { 7 }
 fn default_24() -> u32 { 24 }
 fn default_notify_only() -> String { "notify_only".to_string() }
+fn default_ollama_url() -> String { "http://localhost:11434".to_string() }
+fn default_ollama_model() -> String { "llama3.2".to_string() }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AppSettings {
@@ -41,6 +43,12 @@ pub struct AppSettings {
     pub driver_update_mode: String,
     #[serde(default = "default_true")]
     pub startup_ram_boost: bool,
+
+    // ── Ollama (local, free) ────────────────────────────────────────────────
+    #[serde(default = "default_ollama_url")]
+    pub ollama_url: String,
+    #[serde(default = "default_ollama_model")]
+    pub ollama_model: String,
 }
 
 impl Default for AppSettings {
@@ -64,6 +72,8 @@ impl Default for AppSettings {
             notify_on_driver_issues: true,
             driver_update_mode: "notify_only".to_string(),
             startup_ram_boost: true,
+            ollama_url: "http://localhost:11434".to_string(),
+            ollama_model: "llama3.2".to_string(),
         }
     }
 }

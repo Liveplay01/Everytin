@@ -13,10 +13,7 @@ import {
   Zap,
   BatteryCharging,
   Search,
-  Focus,
-  ClipboardList,
   Grid3X3,
-  History,
   Puzzle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -30,30 +27,27 @@ const NAVIGATION_GROUPS = [
     items: [
       { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard',       tooltip: 'Systemübersicht und Aktivitäten' },
       { to: '/widgets',     icon: Grid3X3,          label: 'Widgets',         tooltip: 'Modulares persönliches Dashboard' },
-      { to: '/assistant',   icon: Bot,              label: 'AI Assistant',    tooltip: 'Fragen stellen, Software installieren lassen' },
+      { to: '/assistant',   icon: Bot,              label: 'KI Assistent',    tooltip: 'Fragen stellen, Software installieren lassen' },
     ]
   },
   {
-    title: 'Systempflege',
+    title: 'Optimierung',
     items: [
       { to: '/performance', icon: Activity,         label: 'Performance',     tooltip: 'CPU, RAM und Prozesse in Echtzeit' },
       { to: '/cleanup',     icon: Sparkles,         label: 'Cleanup & Boost', tooltip: 'Speicherplatz freigeben und RAM optimieren' },
       { to: '/automation',  icon: Zap,              label: 'Automation',      tooltip: 'Automatische Hintergrundaufgaben verwalten' },
-      { to: '/focus',       icon: Focus,            label: 'Focus Mode',      tooltip: 'Pomodoro-Timer, Ambient Sound, Fokusstatistiken' },
-      { to: '/clipboard',   icon: ClipboardList,    label: 'Zwischenablage',  tooltip: 'Verlauf der kopierten Inhalte' },
-      { to: '/sessions',    icon: History,          label: 'Sessions',        tooltip: 'Arbeitsumgebungen speichern und wiederherstellen' },
-      { to: '/plugins',     icon: Puzzle,           label: 'Plugins',         tooltip: 'Erweiterungen verwalten' },
-      { to: '/battery',     icon: BatteryCharging,  label: 'Akku & Energie',  tooltip: 'Akkugesundheit und Energieverbrauch' },
     ]
   },
   {
     title: 'Verwaltung',
     items: [
+      { to: '/security',    icon: Shield,           label: 'Sicherheit',      tooltip: 'Sicherheitsstatus und Firewall-Übersicht' },
       { to: '/updates',     icon: RefreshCw,        label: 'Updates',         tooltip: 'Windows- und App-Updates installieren' },
-      { to: '/installer',   icon: Download,         label: 'App Installer',   tooltip: 'Software suchen und installieren' },
       { to: '/services',    icon: Wrench,           label: 'Dienste',         tooltip: 'Windows-Dienste aktivieren oder deaktivieren' },
       { to: '/drivers',     icon: Cpu,              label: 'Treiber',         tooltip: 'Treiber prüfen und via Windows Update aktualisieren' },
-      { to: '/security',    icon: Shield,           label: 'Sicherheit',      tooltip: 'Sicherheitsstatus und Firewall-Übersicht' },
+      { to: '/battery',     icon: BatteryCharging,  label: 'Akku & Energie',  tooltip: 'Akkugesundheit und Energieverbrauch' },
+      { to: '/installer',   icon: Download,         label: 'App Installer',   tooltip: 'Software suchen und installieren' },
+      { to: '/plugins',     icon: Puzzle,           label: 'Plugins',         tooltip: 'Erweiterungen verwalten' },
     ]
   }
 ] as const

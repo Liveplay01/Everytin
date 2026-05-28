@@ -27,6 +27,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   notify_on_driver_issues: true,
   driver_update_mode: 'notify_only',
   startup_ram_boost: true,
+  ollama_url: 'http://localhost:11434',
+  ollama_model: 'llama3.2',
 }
 
 export default function Settings() {
@@ -102,26 +104,31 @@ export default function Settings() {
           <div className="px-6 py-5 space-y-5">
             {/* Provider Selection */}
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-2">AI Provider</label>
-              <div className="flex gap-2">
-                {(['gemini', 'claude'] as const).map((p) => (
+              <label className="block text-[12px] font-semibold text-[#374151] mb-2">KI-Anbieter</label>
+              <div className="flex gap-2 flex-wrap">
+                {([
+                  { id: 'gemini', label: 'Gemini (Google)' },
+                  { id: 'claude', label: 'Claude (Anthropic)' },
+                  { id: 'ollama', label: 'Ollama (Lokal – kostenlos)' },
+                ] as const).map((p) => (
                   <button
-                    key={p}
-                    onClick={() => update('ai_provider', p)}
+                    key={p.id}
+                    onClick={() => update('ai_provider', p.id)}
                     className={cn(
-                      'flex-1 py-2.5 px-4 rounded-lg border text-[13px] font-medium transition-all',
-                      local.ai_provider === p
+                      'flex-1 py-2.5 px-4 rounded-lg border text-[13px] font-medium transition-all min-w-[120px]',
+                      local.ai_provider === p.id
                         ? 'bg-accent text-white border-accent'
                         : 'border-border text-[#6B7280] hover:border-accent/50',
                     )}
                   >
-                    {p === 'gemini' ? 'Gemini (Google)' : 'Claude (Anthropic)'}
+                    {p.label}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Gemini API Key */}
+            {local.ai_provider !== 'ollama' && (
             <div>
               <label className="block text-[12px] font-semibold text-[#374151] mb-2">
                 Gemini API Key
@@ -150,8 +157,10 @@ export default function Settings() {
                 </button>
               </div>
             </div>
+            )}
 
             {/* Claude API Key */}
+            {local.ai_provider !== 'ollama' && (
             <div>
               <label className="block text-[12px] font-semibold text-[#374151] mb-2">
                 Claude API Key
@@ -180,6 +189,38 @@ export default function Settings() {
                 </button>
               </div>
             </div>
+            )}
+
+            {/* Ollama Config */}
+            {local.ai_provider === 'ollama' && (
+              <div className="space-y-4">
+                <div className="p-3.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg text-[12px] text-emerald-800 dark:text-emerald-300">
+                  <strong>Kostenlos & lokal</strong> — Ollama läuft auf deinem PC, kein Konto nötig.<br />
+                  Installiere Ollama unter <span className="font-mono">https://ollama.com</span> und lade ein Modell: <span className="font-mono">ollama pull llama3.2</span>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#374151] mb-2">Ollama URL</label>
+                  <input
+                    type="text"
+                    value={local.ollama_url}
+                    onChange={(e) => update('ollama_url', e.target.value)}
+                    placeholder="http://localhost:11434"
+                    className="w-full pl-4 py-2.5 text-[13px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#374151] mb-2">Modell</label>
+                  <input
+                    type="text"
+                    value={local.ollama_model}
+                    onChange={(e) => update('ollama_model', e.target.value)}
+                    placeholder="llama3.2"
+                    className="w-full pl-4 py-2.5 text-[13px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all font-mono"
+                  />
+                  <p className="text-[11px] text-[#9CA3AF] mt-1">z.B. llama3.2, gemma2, mistral, phi3</p>
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
 
