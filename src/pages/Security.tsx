@@ -1,7 +1,8 @@
 import { motion, useSpring, useTransform } from 'framer-motion'
 import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-shell'
 import {
   Shield, CheckCircle, XCircle, RefreshCw, ExternalLink,
@@ -73,11 +74,20 @@ function CheckRow({ label, detail, ok, fixLabel, fixUrl, icon }: CheckRowProps) 
 }
 
 export default function Security() {
+  const queryClient = useQueryClient()
   const { data, isLoading, isFetching, refetch } = useQuery<SecurityStatus>({
     queryKey: ['security-status'],
     queryFn: () => invoke('get_security_status'),
     staleTime: 2 * 60 * 1000,
   })
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+    listen('cache://security-ready', () => {
+      queryClient.invalidateQueries({ queryKey: ['security-status'] })
+    }).then((fn) => { unlisten = fn })
+    return () => { unlisten?.() }
+  }, [queryClient])
 
   const score = data?.score ?? 0
 

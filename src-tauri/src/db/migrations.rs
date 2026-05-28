@@ -108,6 +108,14 @@ pub const MIGRATIONS: &[&str] = &[
         ('startup_ram_boost',  'Startup RAM Boost',    1, 'on_startup',  '{}',                    'ram_boost',    '{}'),
         ('driver_check',       'Weekly Driver Check',  1, 'schedule',   '{"interval_hours":168}', 'driver_scan',  '{}');
     "#,
+    // v5 – startup scan result cache
+    r#"
+    CREATE TABLE IF NOT EXISTS scan_cache (
+        key        TEXT PRIMARY KEY,
+        data_json  TEXT NOT NULL,
+        scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    "#,
 ];
 
 pub fn run(conn: &rusqlite::Connection) -> rusqlite::Result<()> {

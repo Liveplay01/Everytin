@@ -244,7 +244,7 @@ async fn run_update_scan(app: &tauri::AppHandle, settings: &AppSettings) {
     if !settings.auto_update_scan_enabled {
         return;
     }
-    match crate::commands::updates::scan_winget_updates().await {
+    match Ok::<_, crate::error::AppError>(crate::commands::updates::winget_scan_core().await) {
         Ok(updates) if !updates.is_empty() => {
             let n = updates.len();
             if settings.notify_on_updates {

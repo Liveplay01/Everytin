@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, Download, RotateCcw, ExternalLink, AlertTriangle } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-shell'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/shared/Toast'
@@ -26,6 +27,21 @@ function formatBytes(b: number) {
 export default function Updates() {
   const queryClient = useQueryClient()
   const [installing, setInstalling] = useState<string | null>(null)
+
+  useEffect(() => {
+    let unW: (() => void) | undefined
+    let unWin: (() => void) | undefined
+
+    listen('cache://winget-ready', () => {
+      queryClient.invalidateQueries({ queryKey: ['winget-updates'] })
+    }).then((fn) => { unW = fn })
+
+    listen('cache://windows-updates-ready', () => {
+      queryClient.invalidateQueries({ queryKey: ['windows-updates'] })
+    }).then((fn) => { unWin = fn })
+
+    return () => { unW?.(); unWin?.() }
+  }, [queryClient])
 
   const {
     data: winUpdates = [],

@@ -45,7 +45,7 @@ pub enum ProcessSort {
     Name,
 }
 
-pub fn snapshot_from_sys(sys: &mut System) -> SystemSnapshot {
+pub fn snapshot_from_sys(sys: &mut System, disk_override: Option<(u64, u64)>) -> SystemSnapshot {
     sys.refresh_cpu_usage();
     sys.refresh_memory();
 
@@ -65,10 +65,12 @@ pub fn snapshot_from_sys(sys: &mut System) -> SystemSnapshot {
     let uptime = System::uptime();
     let load_avg = System::load_average();
 
-    let disks = Disks::new_with_refreshed_list();
-    let (disk_used, disk_total) = disks.list().iter().fold((0u64, 0u64), |(used, total), d| {
-        let d_used = d.total_space().saturating_sub(d.available_space());
-        (used + d_used, total + d.total_space())
+    let (disk_used, disk_total) = disk_override.unwrap_or_else(|| {
+        let disks = Disks::new_with_refreshed_list();
+        disks.list().iter().fold((0u64, 0u64), |(used, total), d| {
+            let d_used = d.total_space().saturating_sub(d.available_space());
+            (used + d_used, total + d.total_space())
+        })
     });
 
     SystemSnapshot {
@@ -95,7 +97,7 @@ pub async fn get_system_snapshot(
     let mut sys = state.system.lock().map_err(|e| {
         crate::error::AppError::System(format!("lock error: {e}"))
     })?;
-    Ok(snapshot_from_sys(&mut sys))
+    Ok(snapshot_from_sys(&mut sys, None))
 }
 
 #[tauri::command]

@@ -1,9 +1,10 @@
 use crate::error::AppResult;
-use serde::Serialize;
+use crate::state::AppState;
+use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UpdateEntry {
     pub id: String,
     pub title: String,
@@ -27,8 +28,7 @@ pub struct DriverUpdateEntry {
 
 // ── Windows Software Updates ─────────────────────────────────────────────────
 
-#[tauri::command]
-pub async fn scan_windows_updates() -> AppResult<Vec<UpdateEntry>> {
+pub async fn windows_scan_core() -> Vec<UpdateEntry> {
     use serde_json::Value;
 
     let script = r#"
@@ -52,21 +52,22 @@ try {
 }
 "#;
 
-    let output = timeout(
+    let Ok(Ok(output)) = timeout(
         Duration::from_secs(30),
         Command::new("powershell")
             .args(["-NoProfile", "-NonInteractive", "-Command", script])
             .output(),
     )
     .await
-    .map_err(|_| crate::error::AppError::Timeout)?
-    .map_err(|e| crate::error::AppError::Process(e.to_string()))?;
+    else {
+        return vec![];
+    };
 
     let raw = String::from_utf8_lossy(&output.stdout).into_owned();
     let raw = raw.trim();
 
     if raw.is_empty() || raw == "[]" {
-        return Ok(vec![]);
+        return vec![];
     }
 
     let value: Value = serde_json::from_str(raw).unwrap_or(Value::Array(vec![]));
@@ -76,8 +77,7 @@ try {
         _ => vec![],
     };
 
-    Ok(arr
-        .into_iter()
+    arr.into_iter()
         .filter_map(|v| {
             let title = v.get("Title")?.as_str()?.to_string();
             let kb = v.get("KB").and_then(|x| x.as_str()).map(|s| s.to_string());
@@ -104,14 +104,41 @@ try {
                 reboot_required,
             })
         })
-        .collect())
+        .collect()
+}
+
+#[tauri::command]
+pub async fn scan_windows_updates(state: tauri::State<'_, AppState>) -> AppResult<Vec<UpdateEntry>> {
+    // Check cache (5-minute TTL)
+    if let Ok(db) = state.db.lock() {
+        if let Ok(json) = db.query_row(
+            "SELECT data_json FROM scan_cache \
+             WHERE key = 'windows_updates' \
+             AND (CAST(strftime('%s', 'now') AS INTEGER) - CAST(strftime('%s', scanned_at) AS INTEGER)) < 300",
+            [],
+            |r| r.get::<_, String>(0),
+        ) {
+            if let Ok(cached) = serde_json::from_str::<Vec<UpdateEntry>>(&json) {
+                return Ok(cached);
+            }
+        }
+    }
+    let result = windows_scan_core().await;
+    if let Ok(json) = serde_json::to_string(&result) {
+        if let Ok(db) = state.db.lock() {
+            let _ = db.execute(
+                "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('windows_updates', ?1, datetime('now'))",
+                rusqlite::params![json],
+            );
+        }
+    }
+    Ok(result)
 }
 
 // ── Winget App Updates ───────────────────────────────────────────────────────
 
-#[tauri::command]
-pub async fn scan_winget_updates() -> AppResult<Vec<UpdateEntry>> {
-    let output = Command::new("winget")
+pub async fn winget_scan_core() -> Vec<UpdateEntry> {
+    let Ok(output) = Command::new("winget")
         .args([
             "upgrade",
             "--accept-source-agreements",
@@ -119,10 +146,39 @@ pub async fn scan_winget_updates() -> AppResult<Vec<UpdateEntry>> {
         ])
         .output()
         .await
-        .map_err(|e| crate::error::AppError::Process(e.to_string()))?;
-
+    else {
+        return vec![];
+    };
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-    Ok(parse_winget_upgrade_output(&stdout))
+    parse_winget_upgrade_output(&stdout)
+}
+
+#[tauri::command]
+pub async fn scan_winget_updates(state: tauri::State<'_, AppState>) -> AppResult<Vec<UpdateEntry>> {
+    // Check cache (5-minute TTL)
+    if let Ok(db) = state.db.lock() {
+        if let Ok(json) = db.query_row(
+            "SELECT data_json FROM scan_cache \
+             WHERE key = 'winget_updates' \
+             AND (CAST(strftime('%s', 'now') AS INTEGER) - CAST(strftime('%s', scanned_at) AS INTEGER)) < 300",
+            [],
+            |r| r.get::<_, String>(0),
+        ) {
+            if let Ok(cached) = serde_json::from_str::<Vec<UpdateEntry>>(&json) {
+                return Ok(cached);
+            }
+        }
+    }
+    let result = winget_scan_core().await;
+    if let Ok(json) = serde_json::to_string(&result) {
+        if let Ok(db) = state.db.lock() {
+            let _ = db.execute(
+                "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('winget_updates', ?1, datetime('now'))",
+                rusqlite::params![json],
+            );
+        }
+    }
+    Ok(result)
 }
 
 fn parse_winget_upgrade_output(raw: &str) -> Vec<UpdateEntry> {

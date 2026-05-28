@@ -151,6 +151,12 @@ pub fn run() {
                 }
             }
 
+            // Startup scanner — pre-populate update/security caches in background
+            let handle_scan = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                startup_scan(handle_scan).await;
+            });
+
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -158,13 +164,36 @@ pub fn run() {
 }
 
 async fn metrics_loop(app: tauri::AppHandle) {
+    use sysinfo::Disks;
     use tauri::Emitter;
     use tokio::time::{interval, Duration};
 
     let mut ticker = interval(Duration::from_secs(2));
     let mut tick_count: u64 = 0;
+    let mut last_disk: (u64, u64) = (0, 0);
+
     loop {
         ticker.tick().await;
+        tick_count += 1;
+
+        // Check window visibility once per tick (cheap IPC call)
+        let visible = app
+            .get_webview_window("main")
+            .and_then(|w| w.is_visible().ok())
+            .unwrap_or(true);
+
+        // When hidden: only process every 5th tick (~10s) to save CPU
+        if !visible && tick_count % 5 != 0 {
+            continue;
+        }
+
+        // Refresh disk every 15 ticks (~30s) — disk usage doesn't change per-second
+        if last_disk == (0, 0) || tick_count % 15 == 0 {
+            let disks = Disks::new_with_refreshed_list();
+            last_disk = disks.list().iter().fold((0u64, 0u64), |(u, t), d| {
+                (u + d.total_space().saturating_sub(d.available_space()), t + d.total_space())
+            });
+        }
 
         let snapshot = {
             let Some(state) = app.try_state::<AppState>() else { break };
@@ -172,18 +201,27 @@ async fn metrics_loop(app: tauri::AppHandle) {
                 .system
                 .lock()
                 .ok()
-                .map(|mut sys| commands::system::snapshot_from_sys(&mut sys))
+                .map(|mut sys| commands::system::snapshot_from_sys(&mut sys, Some(last_disk)))
         };
 
         let Some(snapshot) = snapshot else { continue };
 
-        app.emit("system://metrics", &snapshot).ok();
-
-        // Update tray tooltip with live stats
+        // Update tray tooltip (always — cheap, user expects live stats in tray)
         tray::update_tray_tooltip(&app, snapshot.cpu_usage, snapshot.ram_used, snapshot.ram_total);
 
-        tick_count += 1;
-        if tick_count % 5 == 0 {
+        // Emit to frontend only when window is visible
+        if visible {
+            app.emit("system://metrics", &snapshot).ok();
+        }
+
+        // DB recording: every 10s when visible, every 30s when hidden
+        let should_record = if visible {
+            tick_count % 5 == 0
+        } else {
+            tick_count % 15 == 0
+        };
+
+        if should_record {
             let Some(state) = app.try_state::<AppState>() else { break };
             let lock = state.db.lock();
             if let Ok(db) = lock {
@@ -201,5 +239,66 @@ async fn metrics_loop(app: tauri::AppHandle) {
                 );
             }
         }
+    }
+}
+
+async fn startup_scan(app: tauri::AppHandle) {
+    use tauri::Emitter;
+    use tokio::time::{sleep, Duration};
+
+    // Wait for the UI to finish mounting before hitting PowerShell
+    sleep(Duration::from_secs(3)).await;
+
+    let scan_enabled = app
+        .try_state::<AppState>()
+        .and_then(|s| s.cached_settings.lock().ok().map(|c| c.auto_update_scan_enabled))
+        .unwrap_or(true);
+
+    // 1. Winget scan (~5-10s, fastest)
+    if scan_enabled {
+        let result = commands::updates::winget_scan_core().await;
+        if let Ok(json) = serde_json::to_string(&result) {
+            if let Some(state) = app.try_state::<AppState>() {
+                if let Ok(db) = state.db.lock() {
+                    let _ = db.execute(
+                        "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('winget_updates', ?1, datetime('now'))",
+                        rusqlite::params![json],
+                    );
+                }
+            }
+        }
+        app.emit("cache://winget-ready", ()).ok();
+    }
+
+    // 2. Security scan (~15s, always run — independent of update setting)
+    sleep(Duration::from_secs(3)).await;
+    let security = commands::security::security_scan_core().await;
+    if let Ok(json) = serde_json::to_string(&security) {
+        if let Some(state) = app.try_state::<AppState>() {
+            if let Ok(db) = state.db.lock() {
+                let _ = db.execute(
+                    "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('security_status', ?1, datetime('now'))",
+                    rusqlite::params![json],
+                );
+            }
+        }
+    }
+    app.emit("cache://security-ready", ()).ok();
+
+    // 3. Windows Update scan (~30s, optional)
+    if scan_enabled {
+        sleep(Duration::from_secs(5)).await;
+        let updates = commands::updates::windows_scan_core().await;
+        if let Ok(json) = serde_json::to_string(&updates) {
+            if let Some(state) = app.try_state::<AppState>() {
+                if let Ok(db) = state.db.lock() {
+                    let _ = db.execute(
+                        "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('windows_updates', ?1, datetime('now'))",
+                        rusqlite::params![json],
+                    );
+                }
+            }
+        }
+        app.emit("cache://windows-updates-ready", ()).ok();
     }
 }

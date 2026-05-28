@@ -1,9 +1,10 @@
 use crate::error::{AppError, AppResult};
-use serde::Serialize;
+use crate::state::AppState;
+use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SecurityStatus {
     pub defender_enabled: bool,
     pub defender_realtime: bool,
@@ -32,8 +33,7 @@ async fn run_ps(script: &str) -> Result<String, AppError> {
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
-#[tauri::command]
-pub async fn get_security_status() -> AppResult<SecurityStatus> {
+pub async fn security_scan_core() -> SecurityStatus {
     // ── Defender ──────────────────────────────────────────────────────────────
     let (defender_enabled, defender_realtime, defender_up_to_date, defender_last_scan) =
         match run_ps(
@@ -138,7 +138,7 @@ pub async fn get_security_status() -> AppResult<SecurityStatus> {
         score -= 10;
     }
 
-    Ok(SecurityStatus {
+    SecurityStatus {
         defender_enabled,
         defender_realtime,
         defender_up_to_date,
@@ -151,5 +151,33 @@ pub async fn get_security_status() -> AppResult<SecurityStatus> {
         auto_update_enabled,
         score: score.max(0) as u8,
         issues,
-    })
+    }
+}
+
+#[tauri::command]
+pub async fn get_security_status(state: tauri::State<'_, AppState>) -> AppResult<SecurityStatus> {
+    // Check cache (5-minute TTL)
+    if let Ok(db) = state.db.lock() {
+        if let Ok(json) = db.query_row(
+            "SELECT data_json FROM scan_cache \
+             WHERE key = 'security_status' \
+             AND (CAST(strftime('%s', 'now') AS INTEGER) - CAST(strftime('%s', scanned_at) AS INTEGER)) < 300",
+            [],
+            |r| r.get::<_, String>(0),
+        ) {
+            if let Ok(cached) = serde_json::from_str::<SecurityStatus>(&json) {
+                return Ok(cached);
+            }
+        }
+    }
+    let result = security_scan_core().await;
+    if let Ok(json) = serde_json::to_string(&result) {
+        if let Ok(db) = state.db.lock() {
+            let _ = db.execute(
+                "INSERT OR REPLACE INTO scan_cache (key, data_json, scanned_at) VALUES ('security_status', ?1, datetime('now'))",
+                rusqlite::params![json],
+            );
+        }
+    }
+    Ok(result)
 }
