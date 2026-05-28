@@ -29,48 +29,46 @@ fn content_hash(text: &str) -> String {
     format!("{:x}", hash)
 }
 
-pub fn start(db: Arc<Mutex<Connection>>) {
-    tokio::spawn(async move {
-        let mut ticker = interval(Duration::from_millis(600));
-        let mut last_hash = String::new();
+pub async fn start(db: Arc<Mutex<Connection>>) {
+    let mut ticker = interval(Duration::from_millis(600));
+    let mut last_hash = String::new();
 
-        loop {
-            ticker.tick().await;
+    loop {
+        ticker.tick().await;
 
-            let text = match read_clipboard_text() {
-                Some(t) if !t.trim().is_empty() => t,
-                _ => continue,
-            };
+        let text = match read_clipboard_text() {
+            Some(t) if !t.trim().is_empty() => t,
+            _ => continue,
+        };
 
-            let hash = content_hash(&text);
-            if hash == last_hash {
-                continue;
-            }
-            last_hash = hash.clone();
-
-            let content_type = detect_type(&text);
-
-            if let Ok(conn) = db.lock() {
-                let _ = conn.execute(
-                    "INSERT OR IGNORE INTO clipboard_history (type, content, hash)
-                     VALUES (?1, ?2, ?3)",
-                    rusqlite::params![content_type, text, hash],
-                );
-                // Keep only the last 200 non-pinned entries
-                let _ = conn.execute(
-                    "DELETE FROM clipboard_history
-                     WHERE pinned = 0
-                       AND id NOT IN (
-                         SELECT id FROM clipboard_history
-                         WHERE pinned = 0
-                         ORDER BY created_at DESC
-                         LIMIT 200
-                       )",
-                    [],
-                );
-            }
+        let hash = content_hash(&text);
+        if hash == last_hash {
+            continue;
         }
-    });
+        last_hash = hash.clone();
+
+        let content_type = detect_type(&text);
+
+        if let Ok(conn) = db.lock() {
+            let _ = conn.execute(
+                "INSERT OR IGNORE INTO clipboard_history (type, content, hash)
+                 VALUES (?1, ?2, ?3)",
+                rusqlite::params![content_type, text, hash],
+            );
+            // Keep only the last 200 non-pinned entries
+            let _ = conn.execute(
+                "DELETE FROM clipboard_history
+                 WHERE pinned = 0
+                   AND id NOT IN (
+                     SELECT id FROM clipboard_history
+                     WHERE pinned = 0
+                     ORDER BY created_at DESC
+                     LIMIT 200
+                   )",
+                [],
+            );
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]

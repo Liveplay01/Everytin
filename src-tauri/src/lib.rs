@@ -145,7 +145,9 @@ pub fn run() {
                 if let Ok(conn) = rusqlite::Connection::open(&db_path) {
                     conn.execute_batch("PRAGMA journal_mode=WAL;").ok();
                     let db_arc = Arc::new(std::sync::Mutex::new(conn));
-                    clipboard_monitor::start(db_arc);
+                    tauri::async_runtime::spawn(async move {
+                        clipboard_monitor::start(db_arc).await;
+                    });
                 }
             }
 
